@@ -22,5 +22,5 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_dependency 'mail', '>= 2.2.12'
-  s.add_dependency 'highline', '>= 1.6.1'
+  s.add_dependency 'pg'
 end

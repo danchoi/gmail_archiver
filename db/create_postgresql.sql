@@ -26,11 +26,19 @@ create table mail (
 );
 
 -- todo index mailbox, message_id ? --
+
 create table labels (
+  label_id SERIAL PRIMARY KEY,
+  name varchar,
+  CONSTRAINT labels_name UNIQUE(name)
+);
+
+create table labels_mail (
   mail_id int,
-  mailbox varchar,
-  CONSTRAINT labels_mail_id_mailbox UNIQUE(mail_id, mailbox),
-  CONSTRAINT labels_mail_id_fk FOREIGN KEY(mail_id) REFERENCES mail(mail_id) ON DELETE CASCADE
+  label_id int,
+  CONSTRAINT labels_mail_mail_id_label_id UNIQUE(mail_id, label_id),
+  CONSTRAINT labels_mail_mail_id_fk FOREIGN KEY(mail_id) REFERENCES mail(mail_id) ON DELETE CASCADE,
+  CONSTRAINT labels_mail_label_id_fk FOREIGN KEY(label_id) REFERENCES labels(label_id) ON DELETE CASCADE
 );
 
 create table contacts_mail (
