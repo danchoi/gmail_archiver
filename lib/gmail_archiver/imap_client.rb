@@ -48,7 +48,7 @@ module GmailArchiver
       @mailbox = mailbox
     end
 
-    # TODO skip drafts and spam box
+    # TODO skip drafts and spam box and all box 
     def list_mailboxes
       log 'loading mailboxes...'
       @mailboxes = (@imap.list("", "*") || []).select {|struct| struct.attr.none? {|a| a == :Noselect}}. map {|struct| struct.name}.uniq
@@ -66,7 +66,6 @@ module GmailArchiver
         end
       end
     end
-
   end
 end
 
