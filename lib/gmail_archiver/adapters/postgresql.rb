@@ -1,6 +1,5 @@
 require 'pg'
 require 'time'
-require 'gmail_archiver/adapters/postgresql/mail'
 
 module GmailArchiver
   module Adapters
