@@ -5,4 +5,13 @@ http://deflexion.com/2006/06/for-imap-sql-just-sucks
 http://thread.gmane.org/gmane.mail.imap.dovecot/12817
 
 
+TODO NEXT
+
+- What to do about recipients, cc, bcc addresses
+
+
+see FetchData struct fields here
+
+  http://www.ruby-doc.org/stdlib/libdoc/net/imap/rdoc/classes/Net/IMAP.html
+
 
