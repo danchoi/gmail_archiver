@@ -62,8 +62,7 @@ module GmailArchiver
       puts range.inspect
       range.each_slice(opts[:per_slice]) do |uid_set|
         @imap.uid_fetch(uid_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
-          f = FetchData.new x
-          yield f
+          yield FetchData.new(x)
         end
       end
     end
