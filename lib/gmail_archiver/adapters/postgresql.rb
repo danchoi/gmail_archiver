@@ -19,15 +19,6 @@ module GmailArchiver
 
       def insert_mail(fd, mailbox)
         m_id = mail_id(fd)
-        unless m_id
-          sender_id = contact_id(fd.sender) 
-          date = Time.parse(fd.envelope.date).localtime
-          cmd = "insert into mail " + 
-            "(message_id, date, sender_id, in_reply_to, subject, text, size, rfc822) " + 
-            "values ($1, $2, $3, $4, $5, $6, $7, $8) returning mail_id"
-          values = [fd.message_id, date, sender_id, fd.in_reply_to, fd.subject, fd.message, fd.size, fd.rfc822]
-          m_id = conn.exec(cmd, values)[0]['mail_id']
-        end
         unless labeled?(m_id, mailbox)
           cmd = "insert into labels_mail (mail_id, label_id) values ($1, $2)"
           conn.exec(cmd, [m_id, label_id(mailbox)])
@@ -37,10 +28,22 @@ module GmailArchiver
         raise
       end
 
+      # will create if necessary
       def mail_id(fd)
         cmd = "select mail_id from mail where mail.message_id = $1"
         res = conn.exec(cmd, [fd.message_id])
-        res.ntuples > 0 ? res[0]['mail_id'] : nil
+        if res.ntuples > 0
+          res[0]['mail_id']   
+        else
+          sender_id = contact_id(fd.sender) 
+          date = Time.parse(fd.envelope.date).localtime
+          cmd = "insert into mail " + 
+            "(message_id, date, sender_id, in_reply_to, subject, text, size, rfc822) " + 
+            "values ($1, $2, $3, $4, $5, $6, $7, $8) returning mail_id"
+          values = [fd.message_id, date, sender_id, fd.in_reply_to, fd.subject, fd.message, fd.size, fd.rfc822]
+          conn.exec(cmd, values)[0]['mail_id']
+        end
+ 
       end
 
       def labeled?(mail_id, mailbox)
