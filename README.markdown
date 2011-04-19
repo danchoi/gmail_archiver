@@ -11,7 +11,8 @@ them, more easily.
 Also, I wanted to build a more powerful version of Vmail that uses a
 PostgreSQL datastore. This is essential for message threading and also
 for making Vmail operate with the same level of performance as Mutt, but
-with even more versatility.
+with even more versatility. GmailArchiver will eventually be merged into
+Vmail.
 
 Also I will try to make it possible to substitute other datastore
 backends through adapter classes.
