@@ -82,9 +82,8 @@ if __FILE__ == $0
   mailbox = 'INBOX'
   imap.with_open do |imap|
     imap.select_mailbox mailbox
-    imap.archive_messages(offset: -10) do |fetch_data|
+    imap.archive_messages(offset: -20) do |fetch_data|
       pg.archive(fetch_data, mailbox)
-      sleep 2
     end
   end
 

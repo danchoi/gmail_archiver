@@ -18,7 +18,7 @@ module GmailArchiver
       def insert_mail(fd, mailbox)
         mail_id = archived_message(fd)
         unless mail_id
-          sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
+          sender_id = contact_id(fd.sender) 
           date = Time.parse(fd.envelope.date).localtime
           cmd = "insert into mail " + 
             "(message_id, date, sender_id, in_reply_to, subject, text, rfc822) " + 
@@ -59,15 +59,18 @@ module GmailArchiver
         end
       end
 
-      def insert_contact(addr)
-        cmd = "insert into contacts (email_address, name) values ($1, $2) returning contact_id"
-        values = [email(addr), addr.name]
-        res = conn.exec(cmd, values)[0]['contact_id']
+      def contact_id(addr)
+        res = conn.exec("select contact_id from contacts where email_address = $1", [email(addr)])
+        if res.ntuples == 0 
+          cmd = "insert into contacts (email_address, name) values ($1, $2) returning contact_id"
+          values = [email(addr), addr.name]
+          conn.exec(cmd, values)[0]['contact_id']
+        else
+          res[0]['contact_id']
+        end
       end
 
       def find_contact(addr)
-        res = conn.exec("select contact_id from contacts where email_address = $1", [email(addr)])
-        res.ntuples == 0 ? nil : res[0]['contact_id']
       end
 
       def email(addr)
