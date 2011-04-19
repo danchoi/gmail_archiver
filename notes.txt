@@ -14,4 +14,9 @@ see FetchData and Envelope struct fields here
 
   http://www.ruby-doc.org/stdlib/libdoc/net/imap/rdoc/classes/Net/IMAP.html
 
+OK seems like the data is being archived with labels.
+
+Next is to polish up the command line interface.
+
+
 
