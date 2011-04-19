@@ -1,0 +1,8 @@
+
+warnings about using sql as an imap backend
+
+http://deflexion.com/2006/06/for-imap-sql-just-sucks
+http://thread.gmane.org/gmane.mail.imap.dovecot/12817
+
+
+
