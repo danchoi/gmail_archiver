@@ -70,6 +70,7 @@ module GmailArchiver
 end
 
 if __FILE__ == $0
+  # THIS FOR TESTING ONLY
   require 'gmail_archiver/adapters/postgresql'
   config = YAML::load File.read(File.expand_path('~/.vmailrc'))
   imap = GmailArchiver::ImapClient.new(config)
