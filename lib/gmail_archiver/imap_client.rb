@@ -77,7 +77,6 @@ if __FILE__ == $0
   pg = GmailArchiver::Adapters::Postgresql.new({})
   mailbox = 'story-exchange'
   imap.with_open do |imap|
-    #imap.select_mailbox "INBOX"
     imap.select_mailbox mailbox
     imap.archive_messages(true) do |fetch_data|
       pg.archive(fetch_data, mailbox)
