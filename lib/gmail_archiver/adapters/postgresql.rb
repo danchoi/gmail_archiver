@@ -13,17 +13,20 @@ module GmailArchiver
         conn.exec("delete from contacts") 
       end
 
-      def archive(fd)
-        insert_mail(fd)
+      def archive(fd, mailbox)
+        insert_mail(fd, mailbox)
       end
 
-      def insert_mail(fd)
+      def insert_mail(fd, mailbox)
         sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
         date = Time.parse(fd.envelope.date).localtime
-        cmd = "insert into mail (uid, date, sender_id, \
-          subject, text, rfc822) values ($1, $2, $3, $4, $5, $6)"
-        values = [fd.uid, date, sender_id, fd.subject, fd.message, fd.rfc822]
+        cmd = "insert into mail (mailbox, uid, date, sender_id, \
+          subject, text, rfc822) values ($1, $2, $3, $4, $5, $6, $7)"
+        values = [mailbox, fd.uid, date, sender_id, fd.subject, fd.message, fd.rfc822]
         $stderr.puts conn.exec(cmd, values)
+      rescue
+        puts "Error executing: #{cmd}"
+        raise
       end
 
       def insert_contact(addr)

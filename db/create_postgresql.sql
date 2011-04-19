@@ -12,13 +12,15 @@ create table contacts (
 
 create table mail (
   mail_id SERIAL,
-  uid int UNIQUE,
+  mailbox varchar,
+  uid int,
   date timestamp with time zone, 
   sender_id int, 
   subject varchar,
   text text,
   rfc822 text,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
+  CONSTRAINT mail_mailbox_uid UNIQUE(mailbox, uid),
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) references contacts(contact_id)
 );
 
