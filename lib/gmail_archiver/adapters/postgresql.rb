@@ -19,10 +19,7 @@ module GmailArchiver
 
       def insert_mail(fd, mailbox)
         m_id = mail_id(fd)
-        unless labeled?(m_id, mailbox)
-          cmd = "insert into labels_mail (mail_id, label_id) values ($1, $2)"
-          conn.exec(cmd, [m_id, label_id(mailbox)])
-        end
+        add_label(m_id, mailbox)
       rescue
         puts "Error executing: #{cmd}"
         raise
@@ -46,11 +43,14 @@ module GmailArchiver
  
       end
 
-      def labeled?(mail_id, mailbox)
+      def add_label(mail_id, mailbox)
         cmd = "select * from labels inner join labels_mail using(label_id) " + 
           "where labels_mail.mail_id = $1 and labels.name = $2"
         res = conn.exec(cmd, [mail_id, mailbox])
-        res.ntuples > 0 
+        if res.ntuples == 0
+          cmd = "insert into labels_mail (mail_id, label_id) values ($1, $2)"
+          conn.exec(cmd, [mail_id, label_id(mailbox)])
+        end
       end
 
       # will create if necessary
