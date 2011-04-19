@@ -1,4 +1,3 @@
-
 -- create postgres db --
 drop table if exists contacts_mail;
 drop table if exists contacts;
@@ -14,6 +13,7 @@ create table contacts (
 create table mail (
   mail_id SERIAL,
   uid int UNIQUE,
+  date timestamp with time zone, 
   sender_id int, 
   subject varchar,
   text text,

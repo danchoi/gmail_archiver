@@ -1,4 +1,5 @@
 require 'pg'
+require 'time'
 module GmailArchiver
   module Adapters
     class Postgresql
@@ -7,8 +8,9 @@ module GmailArchiver
         # config is db config, ~/.pgpass can be used
         config = 'dbname=gmail'
         @conn = PGconn.connect config
-        conn.exec("delete from contacts") 
         conn.exec("delete from mail") 
+        conn.exec("delete from contacts_mail") 
+        conn.exec("delete from contacts") 
       end
 
       def archive(fd)
@@ -16,16 +18,27 @@ module GmailArchiver
       end
 
       def insert_mail(fd)
-        sender_id = insert_contact(fd.sender)['contact_id']
-        cmd = "insert into mail (uid, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5)"
-        values = [fd.uid, sender_id, fd.subject, fd.message, fd.rfc822]
+        sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
+        date = Time.parse(fd.envelope.date).localtime
+        cmd = "insert into mail (uid, date, sender_id, \
+          subject, text, rfc822) values ($1, $2, $3, $4, $5, $6)"
+        values = [fd.uid, date, sender_id, fd.subject, fd.message, fd.rfc822]
         $stderr.puts conn.exec(cmd, values)
       end
 
       def insert_contact(addr)
         cmd = "insert into contacts (email_address, name) values ($1, $2) returning contact_id"
-        values = [[addr.mailbox, addr.host].join('@'), addr.name]
-        res = conn.exec(cmd, values)[0]
+        values = [email(addr), addr.name]
+        res = conn.exec(cmd, values)[0]['contact_id']
+      end
+
+      def find_contact(addr)
+        res = conn.exec("select contact_id from contacts where email_address = $1", [email(addr)])
+        res.ntuples == 0 ? nil : res[0]['contact_id']
+      end
+
+      def email(addr)
+        [addr.mailbox, addr.host].join('@')
       end
 
       def self.create_datastore
