@@ -20,8 +20,6 @@ module GmailArchiver
         m_id = mail_id(fd)
         save_contacts(m_id, fd)
         save_label(m_id, mailbox)
-      rescue
-        raise
       end
 
       # will create if necessary
