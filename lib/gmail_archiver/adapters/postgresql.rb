@@ -83,10 +83,14 @@ module GmailArchiver
       end
 
       def save_contact(table, mail_id, addr)
-        cmd = "insert into #{table} (mail_id, contact_id) values ($1, $2)"
-        conn.exec(cmd, [mail_id, contact_id(addr)])
+        contact_id = contact_id(addr)
+        res = conn.exec("select contact_id from #{table} where contact_id = $1 and mail_id = $2", 
+                        [contact_id, mail_id])
+        if res.ntuples == 0
+          cmd = "insert into #{table} (mail_id, contact_id) values ($1, $2)"
+          conn.exec(cmd, [mail_id, contact_id])
+        end
       end
-
 
       def email(addr)
         [addr.mailbox, addr.host].join('@')
