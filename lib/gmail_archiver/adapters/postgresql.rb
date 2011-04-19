@@ -16,7 +16,7 @@ module GmailArchiver
       end
 
       def insert_mail(fd, mailbox)
-        mail_id = archived_message(fd)
+        mail_id = archived_mail_id(fd)
         unless mail_id
           sender_id = contact_id(fd.sender) 
           date = Time.parse(fd.envelope.date).localtime
@@ -35,7 +35,7 @@ module GmailArchiver
         raise
       end
 
-      def archived_message(fd)
+      def archived_mail_id(fd)
         cmd = "select mail_id from mail where mail.message_id = $1"
         res = conn.exec(cmd, [fd.message_id])
         res.ntuples > 0 ? res[0]['mail_id'] : nil
