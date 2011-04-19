@@ -21,9 +21,9 @@ module GmailArchiver
           sender_id = contact_id(fd.sender) 
           date = Time.parse(fd.envelope.date).localtime
           cmd = "insert into mail " + 
-            "(message_id, date, sender_id, in_reply_to, subject, text, rfc822) " + 
-            "values ($1, $2, $3, $4, $5, $6, $7) returning mail_id"
-          values = [fd.message_id, date, sender_id, fd.in_reply_to, fd.subject, fd.message, fd.rfc822]
+            "(message_id, date, sender_id, in_reply_to, subject, text, size, rfc822) " + 
+            "values ($1, $2, $3, $4, $5, $6, $7, $8) returning mail_id"
+          values = [fd.message_id, date, sender_id, fd.in_reply_to, fd.subject, fd.message, fd.size, fd.rfc822]
           mail_id = conn.exec(cmd, values)[0]['mail_id']
         end
         unless labeled?(mail_id, mailbox)

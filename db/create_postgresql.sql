@@ -2,6 +2,7 @@
 drop table if exists contacts_mail;
 drop table if exists contacts cascade;
 drop table if exists labels cascade;
+drop table if exists labels_mail cascade;
 drop table if exists mail cascade;
 
 create table contacts (
@@ -19,6 +20,7 @@ create table mail (
   in_reply_to varchar,
   subject varchar,
   text text,
+  size int,
   rfc822 text,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_message_id UNIQUE(message_id),

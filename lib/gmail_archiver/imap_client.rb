@@ -56,14 +56,11 @@ module GmailArchiver
     end
 
     def archive_messages(opts = {})
-      opts = {per_slice: 100, offset: 0}.merge(opts)
+      opts = {range: (0..-1), per_slice: 10}.merge(opts)
       uids = @imap.uid_search('ALL')
       log "Got UIDs for #{uids.size} messages" 
-      offset = opts[:offset]
-      if offset < 0
-        offset = [opts[:offset], -(uids.size)].max
-      end
-      range = uids[offset..-1]
+      range = uids[opts[:range]]
+      puts range.inspect
       range.each_slice(opts[:per_slice]) do |uid_set|
         @imap.uid_fetch(uid_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
           f = FetchData.new x
@@ -82,7 +79,7 @@ if __FILE__ == $0
   mailbox = 'INBOX'
   imap.with_open do |imap|
     imap.select_mailbox mailbox
-    imap.archive_messages(offset: -20) do |fetch_data|
+    imap.archive_messages(range: (-30..-1)) do |fetch_data|
       pg.archive(fetch_data, mailbox)
     end
   end

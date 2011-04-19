@@ -30,6 +30,7 @@ module GmailArchiver
     def message_id
       envelope.message_id
     end
+
     # http://www.ruby-doc.org/stdlib/libdoc/net/imap/rdoc/classes/Net/IMAP.html
     #
 
