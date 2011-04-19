@@ -45,7 +45,6 @@ module GmailArchiver
       log "Selecting mailbox #{mailbox.inspect}"
       log @imap.select(mailbox)
       @mailbox = mailbox
-      return "OK"
     end
 
     def list_mailboxes
@@ -62,7 +61,7 @@ module GmailArchiver
           f = FetchData.new x
           puts f.envelope.subject
           sleep 1
-        
+          #TODO
         end
       end
     end
