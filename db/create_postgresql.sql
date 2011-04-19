@@ -4,6 +4,13 @@ drop table if exists contacts_mail;
 drop table if exists contacts;
 drop table if exists mail;
 
+create table contacts (
+  contact_id SERIAL,
+  email_address varchar UNIQUE,
+  name varchar,
+  CONSTRAINT contacts_pk PRIMARY KEY(contact_id)
+);
+
 create table mail (
   mail_id SERIAL,
   uid int UNIQUE,
@@ -13,13 +20,6 @@ create table mail (
   rfc822 text,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) references contacts(contact_id)
-);
-
-create table contacts (
-  contact_id SERIAL,
-  email_address varchar UNIQUE,
-  name varchar,
-  CONSTRAINT contacts_pk PRIMARY KEY(contact_id)
 );
 
 create table contacts_mail (

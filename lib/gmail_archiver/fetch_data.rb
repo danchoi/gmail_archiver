@@ -19,7 +19,7 @@ module GmailArchiver
     end
 
     def sender
-      envelope.from.to_s
+      envelope.from.first
     end
 
     def message

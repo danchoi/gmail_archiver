@@ -7,24 +7,25 @@ module GmailArchiver
         # config is db config, ~/.pgpass can be used
         config = 'dbname=gmail'
         @conn = PGconn.connect config
+        conn.exec("delete from contacts") 
+        conn.exec("delete from mail") 
       end
 
       def archive(fd)
         insert_mail(fd)
-        insert_sender(fd)
       end
 
       def insert_mail(fd)
-        sender_id = insert_contact(fd.sender)
+        sender_id = insert_contact(fd.sender)['contact_id']
         cmd = "insert into mail (uid, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5)"
         values = [fd.uid, sender_id, fd.subject, fd.message, fd.rfc822]
         $stderr.puts conn.exec(cmd, values)
       end
 
       def insert_contact(addr)
-        cmd = "insert into contacts (email_address, name) values ($1, $2)"
+        cmd = "insert into contacts (email_address, name) values ($1, $2) returning contact_id"
         values = [[addr.mailbox, addr.host].join('@'), addr.name]
-        conn.exec(cmd, values)
+        res = conn.exec(cmd, values)[0]
       end
 
       def self.create_datastore
