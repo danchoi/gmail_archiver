@@ -13,8 +13,8 @@ module GmailArchiver
     end
 
     def message
-            formatter = Vmail::MessageFormatter.new(mail)
-            message_text = <<-EOF
+      formatter = Vmail::MessageFormatter.new(mail)
+      message_text = <<-EOF
 #{@mailbox} uid:#{uid} #{number_to_human_size size} #{flags.inspect} #{format_parts_info(formatter.list_parts)}
 #{divider '-'}
 #{format_headers(formatter.extract_headers)}
@@ -22,13 +22,6 @@ module GmailArchiver
 #{formatter.process_body}
 EOF
       d = {:mail => mail, :size => size, :message_text => message_text, :seqno => fetch_data.seqno, :flags => flags}
-      message_cache[[@mailbox, uid]] = d
-    rescue
-      msg = "Error encountered parsing message uid  #{uid}:\n#{$!}\n#{$!.backtrace.join("\n")}" + 
-        "\n\nRaw message:\n\n" + mail.to_s
-      log msg
-      log message_text
-      {:message_text => msg}
     end
 
     def format_parts_info(parts)
@@ -49,27 +42,8 @@ EOF
       lines.join("\n")
     end
 
-
-    def open_html_part
-      log "Open_html_part"
-      log @current_mail.parts.inspect
-      multipart = @current_mail.parts.detect {|part| part.multipart?}
-      html_part = if multipart 
-                    multipart.parts.detect {|part| part.header["Content-Type"].to_s =~ /text\/html/}
-                  elsif ! @current_mail.parts.empty?
-                    @current_mail.parts.detect {|part| part.header["Content-Type"].to_s =~ /text\/html/}
-                  else
-                    @current_mail.body
-                  end
-      return if html_part.nil?
-      outfile = 'part.html'
-      File.open(outfile, 'w') {|f| f.puts(html_part.decoded)}
-      # client should handle opening the html file
-      return outfile
-    end
   end
 end
-
 
 # envelope.from # array
 # envelope.to # array
