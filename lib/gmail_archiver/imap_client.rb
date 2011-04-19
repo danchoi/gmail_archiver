@@ -60,6 +60,8 @@ module GmailArchiver
       uids.each_slice(per_slice) do |uid_set|
         @imap.uid_fetch(uid_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
           f = FetchData.new x
+          puts f.envelope.subject
+          sleep 1
         
         end
       end

@@ -1,4 +1,5 @@
 require 'mail'
+require 'gmail_archiver/message_formatter'
 module GmailArchiver
   class FetchData
     attr_accessor :seqno, :uid, :envelope, :size, :flags
@@ -13,15 +14,12 @@ module GmailArchiver
     end
 
     def message
-      formatter = Vmail::MessageFormatter.new(mail)
+      formatter = MessageFormatter.new(@mail)
       message_text = <<-EOF
-#{@mailbox} uid:#{uid} #{number_to_human_size size} #{flags.inspect} #{format_parts_info(formatter.list_parts)}
-#{divider '-'}
 #{format_headers(formatter.extract_headers)}
 
 #{formatter.process_body}
 EOF
-      d = {:mail => mail, :size => size, :message_text => message_text, :seqno => fetch_data.seqno, :flags => flags}
     end
 
     def format_parts_info(parts)

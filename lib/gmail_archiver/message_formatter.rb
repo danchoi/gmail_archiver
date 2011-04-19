@@ -101,7 +101,7 @@ module GmailArchiver
       stdin, stdout, stderr = Open3.popen3(html_tool)
       stdin.puts html
       stdin.close
-      output = "[vmail: html part translated into plaintext by '#{html_tool}']\n\n" + stdout.read
+      output = "[html part translated into plaintext by '#{html_tool}']\n\n" + stdout.read
       charset = part.content_type_parameters && part.content_type_parameters['charset']
       if charset && charset != 'UTF-8'
         Iconv.conv('UTF-8//TRANSLIT//IGNORE', charset, output) 
