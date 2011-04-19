@@ -20,16 +20,33 @@ module GmailArchiver
 
       # TODO insert label in labels
       def insert_mail(fd, mailbox)
-        # TODO check if mail exists already 
-
-        sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
-        date = Time.parse(fd.envelope.date).localtime
-        cmd = "insert into mail (message_id, date, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5, $6)"
-        values = [fd.message_id, date, sender_id, fd.subject, fd.message, fd.rfc822]
-        $stderr.puts conn.exec(cmd, values)
+        mail_id = archived_message(fd)
+        unless mail_id
+          sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
+          date = Time.parse(fd.envelope.date).localtime
+          cmd = "insert into mail (message_id, date, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5, $6) returning mail_id"
+          values = [fd.message_id, date, sender_id, fd.subject, fd.message, fd.rfc822]
+          mail_id = conn.exec(cmd, values)[0]['mail_id']
+        end
+        unless labeled?(mail_id, mailbox)
+          cmd = "insert into labels (mail_id, mailbox) values ($1, $2)"
+          conn.exec(cmd, [mail_id, mailbox])
+        end
       rescue
         puts "Error executing: #{cmd}"
         raise
+      end
+
+      def archived_message(fd)
+        cmd = "select mail_id from mail where mail.message_id = $1"
+        res = conn.exec(cmd, [fd.message_id])
+        res.ntuples > 0 ? res[0]['message_id'] : nil
+      end
+
+      def labeled?(mail_id, mailbox)
+        cmd = "select * from labels where maiL_id = $1 and mailbox = $2"
+        res = conn.exec(cmd, [mail_id, mailbox])
+        res.ntuples > 0 
       end
 
       def insert_contact(addr)

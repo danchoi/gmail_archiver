@@ -24,11 +24,11 @@ create table mail (
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id)
 );
 
+-- todo index mailbox, message_id ? --
 create table labels (
   mail_id int,
   mailbox varchar,
-  uid int,
-  CONSTRAINT mail_mailbox_uid UNIQUE(mailbox, uid),
+  CONSTRAINT labels_mail_id_mailbox UNIQUE(mail_id, mailbox),
   CONSTRAINT labels_mail_id_fk FOREIGN KEY(mail_id) REFERENCES mail(mail_id)
 );
 
