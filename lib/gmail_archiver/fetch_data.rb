@@ -23,6 +23,10 @@ module GmailArchiver
       envelope.from.first
     end
 
+    def in_reply_to
+      envelope.in_reply_to 
+    end
+
     def message_id
       envelope.message_id
     end

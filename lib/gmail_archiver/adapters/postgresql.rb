@@ -18,14 +18,14 @@ module GmailArchiver
         insert_mail(fd, mailbox)
       end
 
-      # TODO insert label in labels
       def insert_mail(fd, mailbox)
         mail_id = archived_message(fd)
         unless mail_id
           sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
           date = Time.parse(fd.envelope.date).localtime
-          cmd = "insert into mail (message_id, date, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5, $6) returning mail_id"
-          values = [fd.message_id, date, sender_id, fd.subject, fd.message, fd.rfc822]
+          cmd = "insert into mail (message_id, date, sender_id, in_reply_to, subject, text, rfc822) \
+          values ($1, $2, $3, $4, $5, $6, $7) returning mail_id"
+          values = [fd.message_id, date, sender_id, fd.in_reply_to, fd.subject, fd.message, fd.rfc822]
           mail_id = conn.exec(cmd, values)[0]['mail_id']
         end
         unless labeled?(mail_id, mailbox)

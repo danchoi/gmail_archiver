@@ -1,8 +1,8 @@
 -- create postgres db --
 drop table if exists contacts_mail;
 drop table if exists contacts cascade;
-drop table if exists labels;
-drop table if exists mail;
+drop table if exists labels cascade;
+drop table if exists mail cascade;
 
 create table contacts (
   contact_id SERIAL,
@@ -16,6 +16,7 @@ create table mail (
   message_id varchar NOT NULL,
   date timestamp with time zone, 
   sender_id int, 
+  in_reply_to varchar,
   subject varchar,
   text text,
   rfc822 text,
@@ -29,7 +30,7 @@ create table labels (
   mail_id int,
   mailbox varchar,
   CONSTRAINT labels_mail_id_mailbox UNIQUE(mail_id, mailbox),
-  CONSTRAINT labels_mail_id_fk FOREIGN KEY(mail_id) REFERENCES mail(mail_id)
+  CONSTRAINT labels_mail_id_fk FOREIGN KEY(mail_id) REFERENCES mail(mail_id) ON DELETE CASCADE
 );
 
 create table contacts_mail (
