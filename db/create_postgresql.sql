@@ -27,6 +27,34 @@ create table mail (
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id)
 );
 
+create table mail_from {
+  mail_id int,
+  contact_id int,
+  CONSTRAINT mail_from_mail_id_contact_id UNIQUE(mail_id, contact_id)
+  -- add inverse index --
+}
+
+create table mail_to {
+  mail_id int,
+  contact_id int,
+  CONSTRAINT mail_to_mail_id_contact_id UNIQUE(mail_id, contact_id)
+  -- add inverse index --
+}
+
+create table mail_cc {
+  mail_id int,
+  contact_id int,
+  CONSTRAINT mail_cc_mail_to_contact_id UNIQUE(mail_id, contact_id)
+  -- add inverse index --
+}
+
+create table mail_bcc {
+  mail_id int,
+  contact_id int,
+  CONSTRAINT mail_bcc_mail_cc_contact_id UNIQUE(mail_id, contact_id)
+  -- add inverse index --
+}
+
 -- todo index mailbox, message_id ? --
 
 create table labels (
