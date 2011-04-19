@@ -43,7 +43,6 @@ module GmailArchiver
     end
 
     def select_mailbox(mailbox)
-      log "Selecting mailbox #{mailbox.inspect}"
       log @imap.select(mailbox)
       @mailbox = mailbox
     end

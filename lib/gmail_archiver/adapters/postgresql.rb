@@ -11,10 +11,13 @@ module GmailArchiver
         @conn = PGconn.connect config
       end
 
+      # this method is required on the GmailArchiver::Adapters
       def archive(fd, mailbox)
         puts "MESSAGE ID: #{fd.message_id}"
         insert_mail(fd, mailbox)
       end
+
+      private
 
       def insert_mail(fd, mailbox)
         m_id = mail_id(fd)
