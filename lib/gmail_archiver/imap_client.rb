@@ -55,9 +55,10 @@ module GmailArchiver
       log "Loaded mailboxes: #{@mailboxes.inspect}"
     end
 
-    def archive_messages(per_slice = 100)
+    def archive_messages(reverse = false, per_slice = 100)
       uids = @imap.uid_search('ALL')
       log "Got UIDs for #{uids.size} messages" 
+      uids.reverse! if reverse
       uids.each_slice(per_slice) do |uid_set|
         @imap.uid_fetch(uid_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
           f = FetchData.new x
@@ -75,8 +76,9 @@ if __FILE__ == $0
   imap = GmailArchiver::ImapClient.new(config)
   pg = GmailArchiver::Adapters::Postgresql.new({})
   imap.with_open do |imap|
-    imap.select_mailbox "INBOX"
-    imap.archive_messages do |fetch_data|
+    #imap.select_mailbox "INBOX"
+    imap.select_mailbox "story-exchange"
+    imap.archive_messages(true) do |fetch_data|
       pg.archive(fetch_data, "INBOX")
       sleep 2
     end
