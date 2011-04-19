@@ -43,6 +43,7 @@ module GmailArchiver
       def labeled?(mail_id, mailbox)
         cmd = "select * from labels where mail_id = $1 and mailbox = $2"
         res = conn.exec(cmd, [mail_id, mailbox])
+        puts "Labeled? #{mail_id} #{mailbox} #{res.ntuples}"
         res.ntuples > 0 
       end
 

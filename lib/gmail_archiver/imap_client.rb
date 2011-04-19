@@ -75,11 +75,12 @@ if __FILE__ == $0
   config = YAML::load File.read(File.expand_path('~/.vmailrc'))
   imap = GmailArchiver::ImapClient.new(config)
   pg = GmailArchiver::Adapters::Postgresql.new({})
+  mailbox = 'story-exchange'
   imap.with_open do |imap|
     #imap.select_mailbox "INBOX"
-    imap.select_mailbox "story-exchange"
+    imap.select_mailbox mailbox
     imap.archive_messages(true) do |fetch_data|
-      pg.archive(fetch_data, "INBOX")
+      pg.archive(fetch_data, mailbox)
       sleep 2
     end
   end
