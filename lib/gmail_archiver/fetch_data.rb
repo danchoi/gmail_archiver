@@ -2,7 +2,7 @@ require 'mail'
 require 'gmail_archiver/message_formatter'
 module GmailArchiver
   class FetchData
-    attr_accessor :seqno, :uid, :envelope, :size, :flags
+    attr_accessor :seqno, :uid, :envelope, :rfc822, :size, :flags
 
     def initialize(x)
       @seq = x.seqno
@@ -10,7 +10,16 @@ module GmailArchiver
       @envelope = x.attr["ENVELOPE"]
       @size = x.attr["RFC822.SIZE"] # not sure what units this is
       @flags = x.attr["FLAGS"]  # e.g. [:Seen]
+      @rfc822 = x.attr['RFC822']
       @mail = Mail.new(x.attr['RFC822'])
+    end
+
+    def subject
+      envelope.subject
+    end
+
+    def sender
+      envelope.from.to_s
     end
 
     def message

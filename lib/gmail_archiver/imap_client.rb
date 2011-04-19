@@ -28,6 +28,7 @@ module GmailArchiver
       log @imap.login(@username, @password)
       list_mailboxes
       yield self
+    ensure
       close
     end
 
@@ -47,6 +48,7 @@ module GmailArchiver
       @mailbox = mailbox
     end
 
+    # TODO skip drafts and spam box
     def list_mailboxes
       log 'loading mailboxes...'
       @mailboxes = (@imap.list("", "*") || []).select {|struct| struct.attr.none? {|a| a == :Noselect}}. map {|struct| struct.name}.uniq
@@ -59,9 +61,7 @@ module GmailArchiver
       uids.each_slice(per_slice) do |uid_set|
         @imap.uid_fetch(uid_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
           f = FetchData.new x
-          puts f.envelope.subject
-          sleep 1
-          #TODO
+          yield f
         end
       end
     end
@@ -70,11 +70,16 @@ module GmailArchiver
 end
 
 if __FILE__ == $0
+  require 'gmail_archiver/adapters/postgresql'
   config = YAML::load File.read(File.expand_path('~/.vmailrc'))
   imap = GmailArchiver::ImapClient.new(config)
+  pg = GmailArchiver::Adapters::Postgresql.new({})
   imap.with_open do |imap|
     imap.select_mailbox "INBOX"
-    imap.archive_messages
+    imap.archive_messages do |fetch_data|
+      pg.archive(fetch_data)
+      sleep 2
+    end
   end
 
 end
