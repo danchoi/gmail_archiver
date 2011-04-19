@@ -18,9 +18,9 @@ module GmailArchiver
 
       def insert_mail(fd, mailbox)
         m_id = mail_id(fd)
-        add_label(m_id, mailbox)
+        save_contacts(m_id, fd)
+        save_label(m_id, mailbox)
       rescue
-        puts "Error executing: #{cmd}"
         raise
       end
 
@@ -39,10 +39,9 @@ module GmailArchiver
           values = [fd.message_id, date, sender_id, fd.in_reply_to, fd.subject, fd.message, fd.size, fd.rfc822]
           conn.exec(cmd, values)[0]['mail_id']
         end
- 
       end
 
-      def add_label(mail_id, mailbox)
+      def save_label(mail_id, mailbox)
         cmd = "select * from labels inner join labels_mail using(label_id) " + 
           "where labels_mail.mail_id = $1 and labels.name = $2"
         res = conn.exec(cmd, [mail_id, mailbox])
@@ -76,8 +75,20 @@ module GmailArchiver
         end
       end
 
-      def find_contact(addr)
+      def save_contacts(mail_id, fd)
+        %w(to cc bcc).each do |field|
+          addrs = fd.envelope.send(field) || []
+          addrs.each do |addr|
+            save_contact "mail_#{field}", mail_id, addr
+          end
+        end
       end
+
+      def save_contact(table, mail_id, addr)
+        cmd = "insert into #{table} (mail_id, contact_id) values ($1, $2)"
+        conn.exec(cmd, [mail_id, contact_id(addr)])
+      end
+
 
       def email(addr)
         [addr.mailbox, addr.host].join('@')
