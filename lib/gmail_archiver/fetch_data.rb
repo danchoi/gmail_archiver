@@ -7,6 +7,7 @@ module GmailArchiver
     def initialize(x)
       @seq = x.seqno
       @uid = x.attr['UID']
+      @message_id = x.attr["MESSAGE-ID"]
       @envelope = x.attr["ENVELOPE"]
       @size = x.attr["RFC822.SIZE"] # not sure what units this is
       @flags = x.attr["FLAGS"]  # e.g. [:Seen]
@@ -21,6 +22,12 @@ module GmailArchiver
     def sender
       envelope.from.first
     end
+
+    def message_id
+      envelope.message_id
+    end
+    # http://www.ruby-doc.org/stdlib/libdoc/net/imap/rdoc/classes/Net/IMAP.html
+    #
 
     def message
       formatter = MessageFormatter.new(@mail)

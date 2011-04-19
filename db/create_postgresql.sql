@@ -1,6 +1,7 @@
 -- create postgres db --
 drop table if exists contacts_mail;
 drop table if exists contacts;
+drop table if exists labels;
 drop table if exists mail;
 
 create table contacts (
@@ -12,16 +13,23 @@ create table contacts (
 
 create table mail (
   mail_id SERIAL,
-  mailbox varchar,
-  uid int,
+  message_id varchar,
   date timestamp with time zone, 
   sender_id int, 
   subject varchar,
   text text,
   rfc822 text,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
+  CONSTRAINT mail_message_id UNIQUE(message_id),
+  CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id)
+);
+
+create table labels (
+  mail_id int,
+  mailbox varchar,
+  uid int,
   CONSTRAINT mail_mailbox_uid UNIQUE(mailbox, uid),
-  CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) references contacts(contact_id)
+  CONSTRAINT labels_mail_id_fk FOREIGN KEY(mail_id) REFERENCES mail(mail_id)
 );
 
 create table contacts_mail (

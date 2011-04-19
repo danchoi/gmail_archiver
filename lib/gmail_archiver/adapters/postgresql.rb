@@ -14,15 +14,16 @@ module GmailArchiver
       end
 
       def archive(fd, mailbox)
+        puts "MESSAGE ID: #{fd.message_id}"
         insert_mail(fd, mailbox)
       end
 
+      # TODO insert label in labels
       def insert_mail(fd, mailbox)
         sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
         date = Time.parse(fd.envelope.date).localtime
-        cmd = "insert into mail (mailbox, uid, date, sender_id, \
-          subject, text, rfc822) values ($1, $2, $3, $4, $5, $6, $7)"
-        values = [mailbox, fd.uid, date, sender_id, fd.subject, fd.message, fd.rfc822]
+        cmd = "insert into mail (message_id, date, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5, $6)"
+        values = [fd.message_id, date, sender_id, fd.subject, fd.message, fd.rfc822]
         $stderr.puts conn.exec(cmd, values)
       rescue
         puts "Error executing: #{cmd}"
