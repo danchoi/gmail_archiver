@@ -1,6 +1,6 @@
 -- create postgres db --
 drop table if exists contacts_mail;
-drop table if exists contacts;
+drop table if exists contacts cascade;
 drop table if exists labels;
 drop table if exists mail;
 
@@ -13,7 +13,7 @@ create table contacts (
 
 create table mail (
   mail_id SERIAL,
-  message_id varchar,
+  message_id varchar NOT NULL,
   date timestamp with time zone, 
   sender_id int, 
   subject varchar,

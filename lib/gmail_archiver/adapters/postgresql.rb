@@ -20,6 +20,8 @@ module GmailArchiver
 
       # TODO insert label in labels
       def insert_mail(fd, mailbox)
+        # TODO check if mail exists already 
+
         sender_id = find_contact(fd.sender) || insert_contact(fd.sender)
         date = Time.parse(fd.envelope.date).localtime
         cmd = "insert into mail (message_id, date, sender_id, subject, text, rfc822) values ($1, $2, $3, $4, $5, $6)"
