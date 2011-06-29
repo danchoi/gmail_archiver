@@ -48,6 +48,7 @@ create table roles (
   contact_id int,
   mail_id int,
   role role_type,
+  name varchar, /* because names of contacts vary while email doesn't */
   CONSTRAINT contacts_mail_contact_id_fk FOREIGN KEY(contact_id) references contacts(contact_id),
   CONSTRAINT contacts_mail_mail_id_fk FOREIGN KEY(mail_id) references mail(mail_id)
 );

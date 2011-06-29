@@ -1,0 +1,8 @@
+
+move sender off mail into join relationship using Role
+put name of sender on that
+
+
+try postgres full text search functions
+
+check max size for text field for payload so no truncation happens
