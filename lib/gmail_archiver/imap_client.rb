@@ -55,13 +55,12 @@ module GmailArchiver
     end
 
     def archive_messages(opts = {})
-      opts = {range: (0..-1), per_slice: 10}.merge(opts)
-      uids = @imap.uid_search('ALL')
-      log "Got UIDs for #{uids.size} messages" 
-      range = uids[opts[:range]]
-      puts range.inspect
-      range.each_slice(opts[:per_slice]) do |uid_set|
-        @imap.uid_fetch(uid_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
+      res = @imap.fetch([1,"*"], ["ENVELOPE"])
+      max_seqno = res ? res[-1].seqno : 1
+      log "Max seqno: #{max_seqno}"
+      range = (1..max_seqno)
+      range.to_a.each_slice(30) do |id_set|
+        @imap.id_fetch(id_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
           yield FetchData.new(x)
         end
       end
@@ -79,9 +78,7 @@ if __FILE__ == $0
   imap.with_open do |imap|
     ['INBOX', '[Gmail]/Important'].each do |mailbox|
       imap.select_mailbox mailbox
-      imap.archive_messages(range: (-30..-1)) do |fetch_data|
-        pg.archive(fetch_data, mailbox)
-      end
+      imap.archive_messages
     end
   end
 
