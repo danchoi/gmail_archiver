@@ -27,7 +27,7 @@ class GmailArchiver
       if part.nil?
         "[No message body]"
       else
-        format_part part
+        Iconv.conv('UTF-8//IGNORE', 'UTF-8', format_part(part))
       end
     end
 
