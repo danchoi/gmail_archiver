@@ -1,5 +1,5 @@
 -- create postgres db --
-drop table if exists contacts_mail;
+drop table if exists connections;
 drop table if exists contacts cascade;
 drop table if exists labels cascade;
 drop table if exists labels_mail cascade;
@@ -7,9 +7,10 @@ drop table if exists mail cascade;
 
 create table contacts (
   contact_id SERIAL,
-  email_address varchar UNIQUE,
   name varchar,
-  CONSTRAINT contacts_pk PRIMARY KEY(contact_id)
+  email varchar UNIQUE,
+  CONSTRAINT contacts_pk PRIMARY KEY(contact_id),
+  UNIQUE (email, name)
 );
 
 create table mail (
@@ -25,7 +26,7 @@ create table mail (
   seen boolean,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_message_id UNIQUE(message_id),
-  CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id)
+  CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id) ON DELETE CASCADE
 );
 
 create table labels (
@@ -42,14 +43,14 @@ create table labelings (
   CONSTRAINT labels_mail_label_id_fk FOREIGN KEY(label_id) REFERENCES labels(label_id) ON DELETE CASCADE
 );
 
-create type role_type as enum ('recipient', 'cc', 'bcc');
+create type connection as enum ('to', 'cc');
 
-create table roles (
+create table connections (
   contact_id int,
   mail_id int,
-  role role_type,
-  name varchar, /* because names of contacts vary while email doesn't */
-  CONSTRAINT contacts_mail_contact_id_fk FOREIGN KEY(contact_id) references contacts(contact_id),
-  CONSTRAINT contacts_mail_mail_id_fk FOREIGN KEY(mail_id) references mail(mail_id)
+  connection connection,
+  CONSTRAINT connection_contact_id_fk FOREIGN KEY(contact_id) references contacts(contact_id) ON DELETE CASCADE,
+  CONSTRAINT connection_mail_id_fk FOREIGN KEY(mail_id) references mail(mail_id) on delete cascade,
+  UNIQUE (contact_id, mail_id, connection)
 );
 

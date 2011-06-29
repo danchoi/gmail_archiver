@@ -2,51 +2,88 @@ require 'gmail_archiver/imap_client'
 require 'gmail_archiver/database'
 require 'yaml'
 
-def email_address(address_struct)
-  "%s@%s" % [address_struct.mailbox, address_struct.host]
-end
 
-if __FILE__ == $0
-  # THIS FOR TESTING ONLY
-  config = YAML::load File.read(File.expand_path('~/.vmailrc'))
-  imap = GmailArchiver::ImapClient.new(config)
+class GmailArchiver
+  def initalize
+  end
 
-  DB.run("delete from mail")
-  imap.with_open do |imap|
-    ['INBOX', '[Gmail]/Important'].each do |mailbox|
-      imap.select_mailbox mailbox
-      imap.get_messages do |x|
+  def run
+    # THIS FOR TESTING ONLY
+    config = YAML::load File.read(File.expand_path('~/.vmailrc'))
+    imap = GmailArchiver::ImapClient.new(config)
 
-        text = x.message
-        text = Iconv.conv("UTF-8//IGNORE", 'UTF-8', text)
+    DB.run("delete from mail cascade")
 
-        params = {message_id: x.message_id,
-          date: x.date,
-          subject: x.envelope.subject, 
-          seen: x.flags.include?(:Seen),
-          in_reply_to: x.in_reply_to,
-          text: text,
-          size: x.size }
+    imap.with_open do |imap|
+      ['INBOX', '[Gmail]/Important'].each do |mailbox|
+        imap.select_mailbox mailbox
+        imap.get_messages do |x|
 
-        contact_params = {
-          email_address: email_address(x.sender)
-        }
-        begin
-          if !(sender = GmailArchiver::Contact[email_address: email_address(x.sender)])
-            sender = GmailArchiver::Contact.create contact_params
+          text = x.message
+          text = Iconv.conv("UTF-8//IGNORE", 'UTF-8', text)
+
+          params = {message_id: x.message_id,
+            date: x.date,
+            subject: x.subject, 
+            seen: x.flags.include?(:Seen),
+            in_reply_to: x.in_reply_to,
+            text: text,
+            size: x.size }
+
+          sender_params = {
+            email_address: email_address(x.sender)
+          }
+          begin
+
+            if !(sender = Contact[email: sender_params[:email]])
+              sender = Contact.create(email: sender_params[:email])
+            end
+
+            mail = GmailArchiver::Mail.create params.merge(sender_id: sender.contact_id)
+
+            %w(to cc).each do |f|
+              address_structs = x.mail[f]
+              next if address_structs.nil?
+              address_structs.each do |address|
+                e = email_address(address)
+                n = address.name
+                if !(contact = Contact[email: e, name: n])
+                  puts "Creating contact: #{e}"
+                  contact = Contact.create(email: e, name: n)
+                end
+                p = {contact_id: contact.contact_id,
+                     mail_id: mail.mail_id,
+                     connection: f}
+
+                if !DB[:connections].filter(p).first
+                  DB[:connections].insert p
+                end
+              end
+            end
+
+          rescue
+            puts params.inspect
+            raise
           end
-          mail = GmailArchiver::Mail.create params.merge(sender_id: sender.contact_id)
-
-        rescue
-          puts params.inspect
-          puts contact_params.inspect
-          raise
+          puts "created #{mail}"
+          puts "created #{sender}"
         end
-        puts "created #{mail}"
-        puts "created #{sender}"
       end
     end
   end
 
+  def email_address(address_struct)
+    if address_struct.respond_to?(:mailbox)
+      "%s@%s" % [address_struct.mailbox, address_struct.host]
+    else
+      address_struct.address
+    end
+  end
+
+end
+
+
+if __FILE__ == $0
+  GmailArchiver.new.run
 end
 

@@ -2,7 +2,7 @@ require 'mail'
 require 'open3'
 require 'iconv'
 
-module GmailArchiver
+class GmailArchiver
   class MessageFormatter
     # initialize with a Mail object
     def initialize(mail, uid = nil)

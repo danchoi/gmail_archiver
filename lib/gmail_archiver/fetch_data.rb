@@ -1,9 +1,10 @@
 require 'mail'
 require 'date'
 require 'gmail_archiver/message_formatter'
-module GmailArchiver
+
+class GmailArchiver
   class FetchData
-    attr_accessor :message_id, :date, :seqno, :uid, :envelope, :rfc822, :size, :flags
+    attr_accessor :message_id, :date, :seqno, :uid, :envelope, :rfc822, :size, :flags, :mail
 
     def initialize(x)
       @seq = x.seqno

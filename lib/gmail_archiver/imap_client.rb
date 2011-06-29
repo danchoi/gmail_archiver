@@ -6,7 +6,7 @@ require 'net/imap'
 require 'time'
 require 'gmail_archiver/fetch_data'
 
-module GmailArchiver
+class GmailArchiver
   class ImapClient
     attr_accessor :max_seqno 
     def initialize(config)

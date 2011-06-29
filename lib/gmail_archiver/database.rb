@@ -2,7 +2,7 @@ require 'sequel'
 
 DB = Sequel.connect 'postgres:///gmail'
 
-module GmailArchiver
+class GmailArchiver
   class Mail < Sequel::Model(:mail)
     set_primary_key :mail_id
   end
