@@ -22,33 +22,12 @@ create table mail (
   text text,
   size int,
   rfc822 text,
+  boolean seen,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_message_id UNIQUE(message_id),
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id)
 );
 
-create table mail_to (
-  mail_id int,
-  contact_id int,
-  CONSTRAINT mail_to_mail_id_contact_id UNIQUE(mail_id, contact_id)
-  -- add inverse index --
-);
-
-create table mail_cc (
-  mail_id int,
-  contact_id int,
-  CONSTRAINT mail_cc_mail_to_contact_id UNIQUE(mail_id, contact_id)
-  -- add inverse index --
-);
-
-create table mail_bcc (
-  mail_id int,
-  contact_id int,
-  CONSTRAINT mail_bcc_mail_cc_contact_id UNIQUE(mail_id, contact_id)
-  -- add inverse index --
-);
-
--- todo index mailbox, message_id ? --
 
 create table labels (
   label_id SERIAL PRIMARY KEY,
@@ -56,7 +35,7 @@ create table labels (
   CONSTRAINT labels_name UNIQUE(name)
 );
 
-create table labels_mail (
+create table labelings (
   mail_id int,
   label_id int,
   CONSTRAINT labels_mail_mail_id_label_id UNIQUE(mail_id, label_id),
@@ -64,9 +43,13 @@ create table labels_mail (
   CONSTRAINT labels_mail_label_id_fk FOREIGN KEY(label_id) REFERENCES labels(label_id) ON DELETE CASCADE
 );
 
-create table contacts_mail (
+create type role as enum ('recipient', 'cc', 'bcc');
+
+create table roles (
   contact_id int,
   mail_id int,
+  role role,
   CONSTRAINT contacts_mail_contact_id_fk FOREIGN KEY(contact_id) references contacts(contact_id),
   CONSTRAINT contacts_mail_mail_id_fk FOREIGN KEY(mail_id) references mail(mail_id)
 );
+
