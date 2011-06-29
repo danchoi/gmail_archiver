@@ -18,7 +18,12 @@ class GmailArchiver
         label = Label[name: mailbox] || Label.create(name: mailbox) 
 
         imap.select_mailbox mailbox
+
         imap.get_messages do |x|
+
+          # TODO get headers first and check if message-id is in db
+          # If not, then download the RFC822
+          #
 
           text = x.message
           text = Iconv.conv("UTF-8//IGNORE", 'UTF-8', text)
@@ -32,8 +37,8 @@ class GmailArchiver
             size: x.size }
 
           sender_params = { email: email_address(x.sender) }
-          begin
 
+          begin
             if !(sender = Contact[email: sender_params[:email]])
               sender = Contact.create(email: sender_params[:email])
             end

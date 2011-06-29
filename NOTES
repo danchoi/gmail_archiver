@@ -7,3 +7,7 @@ try postgres full text search functions
 
 check max size for text field for payload so no truncation happens
 
+
+Add an attachments  table that contains the metadata for attacments (mime type, size)
+
+
