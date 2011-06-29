@@ -56,15 +56,14 @@ module GmailArchiver
           format_text_body(part) 
         end
       else 
-        part.decoded.gsub("\r", '')
+        x = part.decoded.gsub("\r", '')
+        x
       end
-    rescue
-      puts $!
-      "[error:] #{$!}"
     end
 
     def format_text_body(part)
-      part.body.decoded.gsub("\r", '')
+      x = part.body.decoded.gsub("\r", '')
+      x
     end
 
     # depend on lynx or whatever is set by the VMAIL_HTML_PART_READER
@@ -113,9 +112,6 @@ module GmailArchiver
               Iconv.conv('US-ASCII//TRANSLIT/IGNORE', 'UTF-8', string)
             end
       out
-    rescue
-      $logger.debug $!
-      "[error: #$!]"
     end
   end
 end

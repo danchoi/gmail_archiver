@@ -54,32 +54,16 @@ module GmailArchiver
       log "Loaded mailboxes: #{@mailboxes.inspect}"
     end
 
-    def archive_messages(opts = {})
+    def get_messages
       res = @imap.fetch([1,"*"], ["ENVELOPE"])
       max_seqno = res ? res[-1].seqno : 1
       log "Max seqno: #{max_seqno}"
       range = (1..max_seqno)
       range.to_a.each_slice(30) do |id_set|
-        @imap.id_fetch(id_set, ["FLAGS", 'ENVELOPE', "RFC822", "RFC822.SIZE", 'UID']).each do |x|
+        @imap.fetch(id_set, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
           yield FetchData.new(x)
         end
       end
     end
   end
-end
-
-if __FILE__ == $0
-  # THIS FOR TESTING ONLY
-  require 'gmail_archiver/adapters/postgresql'
-  config = YAML::load File.read(File.expand_path('~/.vmailrc'))
-  imap = GmailArchiver::ImapClient.new(config)
-  pg = GmailArchiver::Adapters::Postgresql.new({})
-
-  imap.with_open do |imap|
-    ['INBOX', '[Gmail]/Important'].each do |mailbox|
-      imap.select_mailbox mailbox
-      imap.archive_messages
-    end
-  end
-
 end

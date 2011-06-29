@@ -1,8 +1,9 @@
 require 'mail'
+require 'date'
 require 'gmail_archiver/message_formatter'
 module GmailArchiver
   class FetchData
-    attr_accessor :seqno, :uid, :envelope, :rfc822, :size, :flags
+    attr_accessor :message_id, :date, :seqno, :uid, :envelope, :rfc822, :size, :flags
 
     def initialize(x)
       @seq = x.seqno
@@ -12,7 +13,8 @@ module GmailArchiver
       @size = x.attr["RFC822.SIZE"] # not sure what units this is
       @flags = x.attr["FLAGS"]  # e.g. [:Seen]
       @rfc822 = x.attr['RFC822']
-      @mail = Mail.new(x.attr['RFC822'])
+      @mail = ::Mail.new @rfc822
+      @date = @mail.date
     end
 
     def subject
@@ -39,7 +41,7 @@ module GmailArchiver
       message_text = <<-EOF
 #{format_headers(formatter.extract_headers)}
 
-#{formatter.process_body}
+#{formatter.plaintext_part}
 EOF
     end
 

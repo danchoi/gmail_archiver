@@ -22,12 +22,11 @@ create table mail (
   text text,
   size int,
   rfc822 text,
-  boolean seen,
+  seen boolean,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_message_id UNIQUE(message_id),
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id)
 );
-
 
 create table labels (
   label_id SERIAL PRIMARY KEY,
@@ -43,12 +42,12 @@ create table labelings (
   CONSTRAINT labels_mail_label_id_fk FOREIGN KEY(label_id) REFERENCES labels(label_id) ON DELETE CASCADE
 );
 
-create type role as enum ('recipient', 'cc', 'bcc');
+create type role_type as enum ('recipient', 'cc', 'bcc');
 
 create table roles (
   contact_id int,
   mail_id int,
-  role role,
+  role role_type,
   CONSTRAINT contacts_mail_contact_id_fk FOREIGN KEY(contact_id) references contacts(contact_id),
   CONSTRAINT contacts_mail_mail_id_fk FOREIGN KEY(mail_id) references mail(mail_id)
 );
