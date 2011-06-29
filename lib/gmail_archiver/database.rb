@@ -7,7 +7,7 @@ module GmailArchiver
     set_primary_key :mail_id
   end
 
-  class Contact < Sequel::Model(:mail_bcc)
+  class Contact < Sequel::Model(:contacts)
   end
 
   class Role < Sequel::Model(:roles)

@@ -2,11 +2,16 @@ require 'gmail_archiver/imap_client'
 require 'gmail_archiver/database'
 require 'yaml'
 
+def email_address(address_struct)
+  "%s@%s" % [address_struct.mailbox, address_struct.host]
+end
+
 if __FILE__ == $0
   # THIS FOR TESTING ONLY
   config = YAML::load File.read(File.expand_path('~/.vmailrc'))
   imap = GmailArchiver::ImapClient.new(config)
 
+  DB.run("delete from mail")
   imap.with_open do |imap|
     ['INBOX', '[Gmail]/Important'].each do |mailbox|
       imap.select_mailbox mailbox
@@ -23,13 +28,22 @@ if __FILE__ == $0
           text: text,
           size: x.size }
 
+        contact_params = {
+          email_address: email_address(x.sender)
+        }
         begin
-          m = GmailArchiver::Mail.create params
+          if !(sender = GmailArchiver::Contact[email_address: email_address(x.sender)])
+            sender = GmailArchiver::Contact.create contact_params
+          end
+          mail = GmailArchiver::Mail.create params.merge(sender_id: sender.contact_id)
+
         rescue
           puts params.inspect
+          puts contact_params.inspect
           raise
         end
-        puts "created #{m}"
+        puts "created #{mail}"
+        puts "created #{sender}"
       end
     end
   end
