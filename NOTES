@@ -2,12 +2,19 @@
 move sender off mail into join relationship using Role
 put name of sender on that
 
-
 try postgres full text search functions
 
-check max size for text field for payload so no truncation happens
+
+TODO
+
+Add an attachments table that contains the metadata for attacments (mime type, size)
 
 
-Add an attachments  table that contains the metadata for attacments (mime type, size)
+In the initial fetch, don't get the RFC822. Check the MESSAGE-ID to 
+see if we already have that info in the database.
+
+Store the UID on the Labeling.  This is useful when we want to batch
+delete or move messages in a given SQL select on the IMAP server.
+
 
 
