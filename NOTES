@@ -16,5 +16,8 @@ see if we already have that info in the database.
 Store the UID on the Labeling.  This is useful when we want to batch
 delete or move messages in a given SQL select on the IMAP server.
 
+------------------------------------------------------------------------
 
+? Download only the read emails first, and let the user decide what to do about
+unread.
 
