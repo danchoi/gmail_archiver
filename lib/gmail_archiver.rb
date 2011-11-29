@@ -154,7 +154,8 @@ class GmailArchiver
            mail_id: mail.mail_id,
            connection: f}
       if f == 'from'
-        puts "#{$mailbox} => Created mail: #{mail.date.strftime("%m-%d-%Y")} | #{contact} | #{mail.subject && mail.subject[0,50]}"
+        puts "#{$mailbox} => Created mail: #{mail.date.strftime("%m-%d-%Y")} | " + 
+          "#{("%-30s" % contact)[0,30]} | #{("%-50s" % mail.subject)[0,50]}"
         mail.update(sender_id: contact.contact_id)
       elsif !DB[:connections].filter(p).first
         DB[:connections].insert p
