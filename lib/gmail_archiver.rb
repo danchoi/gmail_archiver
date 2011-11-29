@@ -63,7 +63,7 @@ class GmailArchiver
             %w(to cc).each do |f|
               address_structs = x.mail[f]
               next if address_structs.nil?
-              address_structs.each do |address|
+              [address_structs].flatten.each do |address|
                 e = email_address(address)
                 n = address.name
                 if e.nil?
