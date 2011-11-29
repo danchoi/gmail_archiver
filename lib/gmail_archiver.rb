@@ -99,7 +99,7 @@ class GmailArchiver
     res = imap.fetch([start_idx,"*"], ["ENVELOPE"])
     max_seqno = res ? res[-1].seqno : 1
     puts "Max seqno: #{max_seqno}"
-    range = (1..max_seqno)
+    range = (start_idx..max_seqno)
     range.to_a.each_slice(30) do |id_set|
       puts "Fetching slice: #{id_set.inspect}"
       imap.fetch(id_set, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
@@ -115,9 +115,11 @@ class GmailArchiver
       x.address
     elsif x.is_a?(String)
       x
+    elsif (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
+      v.to_s
     end
     if res.nil?
-      raise "No email address found for struct: #{x.inspect}"
+      raise "No email address found for: #{x.inspect} | class: #{x.class} | x.value: #{x.value} x.name: #{x.name}"
     end
     res
   end
