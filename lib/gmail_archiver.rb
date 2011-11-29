@@ -12,16 +12,16 @@ class GmailArchiver
   def self.run
     # THIS FOR TESTING ONLY
     config = YAML::load File.read(File.expand_path('vmailrc'))
-    imap = GmailArchiver::ImapClient.new(config)
+    imap_client = GmailArchiver::ImapClient.new(config)
 
-    imap.with_open do |imap|
+    imap_client.with_open do 
       ['INBOX', '[Gmail]/Important'].each do |mailbox|
 
         label = Label[name: mailbox] || Label.create(name: mailbox) 
 
-        imap.select_mailbox mailbox
+        imap_client.select_mailbox mailbox
 
-        imap.get_messages do |x|
+        get_messages(imap_client.imap) do |x|
 
           # TODO get headers first and check if message-id is in db
           # If not, then download the RFC822
@@ -37,8 +37,7 @@ class GmailArchiver
             in_reply_to: x.in_reply_to,
             text: text,
             rfc822: (Iconv.conv("UTF-8//IGNORE", 'UTF-8', x.rfc822)),
-            size: x.size }
-
+            size: x.size } 
           sender_params = { email: email_address(x.sender) }
 
           begin
@@ -61,14 +60,17 @@ class GmailArchiver
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id)
 
             %w(to cc).each do |f|
-              address_structs = x.mail[f]
-              next if address_structs.nil?
-              [address_structs].flatten.each do |address|
+              xs = x.mail[f]
+              next if xs.nil?
+              if xs.respond_to?(:addrs)
+                xs = xs.addrs
+              end
+              [xs].flatten.
+              map {|a| 
+                a.respond_to?(:addrs) ? a.addrs : a
+              }.flatten.each do |address|
                 e = email_address(address)
                 n = address.name
-                if e.nil?
-                  raise "Nil email: #{address}"
-                end
                 if !(contact = Contact[email: e, name: n])
                   contact = Contact.create(email: e, name: n)
                   puts "Created contact  #{e}"
@@ -93,18 +95,32 @@ class GmailArchiver
     end
   end
 
-  def self.email_address(address_struct)
-    res = if address_struct.respond_to?(:mailbox)
-      "%s@%s" % [address_struct.mailbox, address_struct.host]
-    else
-      address_struct.address
+  def self.get_messages(imap)
+    res = imap.fetch([1,"*"], ["ENVELOPE"])
+    max_seqno = res ? res[-1].seqno : 1
+    puts "Max seqno: #{max_seqno}"
+    range = (1..max_seqno)
+    range.to_a.each_slice(30) do |id_set|
+      puts "Fetching slice: #{id_set.inspect}"
+      imap.fetch(id_set, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
+        yield FetchData.new(x)
+      end
+    end
+  end
+
+  def self.email_address(x)
+    res = if x.respond_to?(:mailbox)
+      "%s@%s" % [x.mailbox, x.host]
+    elsif x.respond_to?(:address)
+      x.address
+    elsif x.is_a?(String)
+      x
     end
     if res.nil?
-      raise "No email address found for struct: #{address_struct}"
+      raise "No email address found for struct: #{x.inspect}"
     end
     res
   end
-
 end
 
 

@@ -8,7 +8,7 @@ require 'gmail_archiver/fetch_data'
 
 class GmailArchiver
   class ImapClient
-    attr_accessor :max_seqno 
+    attr_accessor :max_seqno, :imap
     def initialize(config)
       @username, @password = config['username'], config['password']
       @imap_server = config['server'] || 'imap.gmail.com'
@@ -27,7 +27,7 @@ class GmailArchiver
       @imap = Net::IMAP.new(@imap_server, @imap_port, true, nil, false)
       log @imap.login(@username, @password)
       list_mailboxes
-      yield self
+      yield 
     ensure
       close
     end
@@ -54,16 +54,5 @@ class GmailArchiver
       log "Loaded mailboxes: #{@mailboxes.inspect}"
     end
 
-    def get_messages
-      res = @imap.fetch([1,"*"], ["ENVELOPE"])
-      max_seqno = res ? res[-1].seqno : 1
-      log "Max seqno: #{max_seqno}"
-      range = (1..max_seqno)
-      range.to_a.each_slice(30) do |id_set|
-        @imap.fetch(id_set, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
-          yield FetchData.new(x)
-        end
-      end
-    end
   end
 end
