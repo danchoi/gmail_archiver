@@ -9,7 +9,7 @@ require 'yaml'
 
 class GmailArchiver
 
-  def self.run
+  def self.run(start_idx=1)
     # THIS FOR TESTING ONLY
     config = YAML::load File.read(File.expand_path('vmailrc'))
     imap_client = GmailArchiver::ImapClient.new(config)
@@ -21,7 +21,7 @@ class GmailArchiver
 
         imap_client.select_mailbox mailbox
 
-        get_messages(imap_client.imap) do |x|
+        get_messages(imap_client.imap, start_idx) do |x|
 
           # TODO get headers first and check if message-id is in db
           # If not, then download the RFC822
@@ -95,8 +95,8 @@ class GmailArchiver
     end
   end
 
-  def self.get_messages(imap)
-    res = imap.fetch([1,"*"], ["ENVELOPE"])
+  def self.get_messages(imap, start_idx=1)
+    res = imap.fetch([start_idx,"*"], ["ENVELOPE"])
     max_seqno = res ? res[-1].seqno : 1
     puts "Max seqno: #{max_seqno}"
     range = (1..max_seqno)
@@ -123,8 +123,8 @@ class GmailArchiver
   end
 end
 
-
 if __FILE__ == $0
-  GmailArchiver.run
+  start_idx = (ARGV[0] || 1).to_i
+  GmailArchiver.run start_idx
 end
 
