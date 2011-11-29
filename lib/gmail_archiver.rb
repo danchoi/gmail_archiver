@@ -68,8 +68,9 @@ class GmailArchiver
               [xs].flatten.
               map {|a| 
                 a.respond_to?(:addrs) ? a.addrs : a
-              }.flatten.compact.each do |address|
+              }.flatten.each do |address|
                 e = email_address(address)
+                next unless e
                 n = address.name
                 if !(contact = Contact[email: e, name: n])
                   contact = Contact.create(email: e, name: n)
