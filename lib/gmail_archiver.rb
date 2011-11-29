@@ -30,6 +30,8 @@ class GmailArchiver
           text = x.message
           text = Iconv.conv("UTF-8//IGNORE", 'UTF-8', text)
 
+          next if x.date.nil?
+
           params = {message_id: x.message_id,
             date: x.date,
             subject: x.subject, 
