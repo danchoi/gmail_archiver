@@ -99,8 +99,10 @@ class GmailArchiver
     puts "Max seqno: #{max_seqno}"
     range = (start_idx..max_seqno)
     range.to_a.each_slice(30) do |id_set|
-      puts "Fetching slice: #{id_set.inspect}"
-      imap.fetch(id_set, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
+      # use bounds instead of specifying all indexes
+      bounds = Range.new(id_set[0], id_set[-1], false) # nonexclusive
+      puts "Fetching slice: #{bounds}"
+      imap.fetch(bounds, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
         yield FetchData.new(x)
       end
     end
