@@ -74,16 +74,21 @@ class GmailArchiver
                 e = email_address(address)
                 next unless e
                 n = address.name
-                if !(contact = Contact[email: e, name: n])
-                  contact = Contact.create(email: e, name: n)
-                  puts "Created contact  #{e}"
-                end
-                p = {contact_id: contact.contact_id,
-                     mail_id: mail.mail_id,
-                     connection: f}
-
-                if !DB[:connections].filter(p).first
-                  DB[:connections].insert p
+                begin
+                  if !(contact = Contact[email: e, name: n])
+                    contact = Contact.create(email: e, name: n)
+                    puts "Created contact  #{e}"
+                  end
+                  p = {contact_id: contact.contact_id,
+                       mail_id: mail.mail_id,
+                       connection: f}
+                  if !DB[:connections].filter(p).first
+                    DB[:connections].insert p
+                  end
+                rescue Sequel::Error
+                  puts "ERROR. #{$!}"
+                  puts "email_address: #{e}"
+                  puts "name: #{n}"
                 end
               end
             end
