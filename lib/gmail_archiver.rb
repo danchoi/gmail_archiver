@@ -40,12 +40,8 @@ class GmailArchiver
             text: text,
             rfc822: (Iconv.conv("UTF-8//IGNORE", 'UTF-8', x.rfc822)),
             size: x.size } 
-          sender_params = { email: parse_email_address(x.sender)[1] }
 
           begin
-            if !(sender = Contact[email: sender_params[:email]])
-              sender = Contact.create(email: sender_params[:email])
-            end
 
             mail = GmailArchiver::Mail[message_id: x.message_id]
             if mail 
@@ -61,7 +57,7 @@ class GmailArchiver
 
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id)
 
-            %w(to cc).each do |f|
+            %w(from to cc).each do |f|
               xs = x.mail[f]
               next if xs.nil?
               if xs.respond_to?(:addrs)
@@ -71,16 +67,7 @@ class GmailArchiver
               map {|a| 
                 a.respond_to?(:addrs) ? a.addrs : a
               }.flatten.each do |address|
-                n, e = *parse_email_address(address)
-                next unless e
-                if e.is_a?(Array) # array of email addresses; no names
-                  e.map {|e2| 
-                    save_contact(e2.to_s, n, f, mail) 
-                  }
-                else
-                  n = address.name
-                  save_contact(e, n, f, mail)
-                end
+                parse_email_address(address, f)
               end
             end
 
@@ -109,8 +96,12 @@ class GmailArchiver
     end
   end
 
-  def self.parse_email_address(x)
-    if x.respond_to?(:mailbox)
+  def self.parse_email_address(x, f)
+    if (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
+      v.split(/, +/).map {|w| parse_email_address(w)}
+      return
+    end
+    res = if x.respond_to?(:mailbox)
       [x.name, "%s@%s" % [x.mailbox, x.host]]
     elsif x.respond_to?(:address)
       [x.name, x.address]
@@ -122,19 +113,27 @@ class GmailArchiver
       else
         [nil, x]
       end
-    elsif (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
-      v.split(/, +/).map {|w| parse_email_address(w)}
     end
+    n, e = *res
+    unless e
+      puts "No email found for #{n}"
+      return
+    end
+    save_contact(e, n, f, mail)
   end
-
   # e email
   # n name
   # f field type
   def self.save_contact(e, n, f, mail)
     begin
-      if !(contact = Contact[email: e, name: n])
+      if (contact = Contact[email: e]).nil?
         contact = Contact.create(email: e, name: n)
-        puts "Created contact  #{e}"
+        puts "New contact => #{e.inspect} | #{n}"
+      elsif (contact = Contact[email: e])
+        if n
+          contact.update name: n
+          puts "Updated contact => #{e.inspect} | #{n}"
+        end
       end
       p = {contact_id: contact.contact_id,
            mail_id: mail.mail_id,
