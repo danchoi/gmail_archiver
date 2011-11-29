@@ -52,8 +52,8 @@ class GmailArchiver
               next
             end
 
-            mail = GmailArchiver::Mail.create params.merge(sender_id: sender.contact_id)
-            puts "Created mail  #{mail.date.strftime("%m-%d-%Y")}  #{mail.subject && mail.subject[0,50]}"
+            mail = GmailArchiver::Mail.create params
+            puts "Created mail: #{mail.date.strftime("%m-%d-%Y")}  #{mail.subject && mail.subject[0,50]}"
 
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id)
 
@@ -96,9 +96,9 @@ class GmailArchiver
     end
   end
 
-  def self.parse_email_address(x, f)
+  def self.parse_email_address(x, f, mail)
     if (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
-      v.split(/, +/).map {|w| parse_email_address(w)}
+      v.split(/, +/).map {|w| parse_email_address(w, f, mail)}
       return
     end
     res = if x.respond_to?(:mailbox)
@@ -121,6 +121,7 @@ class GmailArchiver
     end
     save_contact(e, n, f, mail)
   end
+
   # e email
   # n name
   # f field type
@@ -139,8 +140,13 @@ class GmailArchiver
            mail_id: mail.mail_id,
            connection: f}
       if !DB[:connections].filter(p).first
-        DB[:connections].insert p
+        contact_id = DB[:connections].insert p
       end
+      if f == 'from'
+        puts "Adding sender to mail: #{e} #{n}"
+        mail.update(sender_id: contact_id)
+      end
+      contact_id
     rescue Sequel::Error
       puts "ERROR. #{$!}"
       puts "email_address: #{e}"
