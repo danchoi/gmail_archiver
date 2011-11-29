@@ -40,7 +40,7 @@ class GmailArchiver
             text: text,
             rfc822: (Iconv.conv("UTF-8//IGNORE", 'UTF-8', x.rfc822)),
             size: x.size } 
-          sender_params = { email: email_address(x.sender) }
+          sender_params = { email: parse_email_address(x.sender)[1] }
 
           begin
             if !(sender = Contact[email: sender_params[:email]])
@@ -71,11 +71,12 @@ class GmailArchiver
               map {|a| 
                 a.respond_to?(:addrs) ? a.addrs : a
               }.flatten.each do |address|
-                e = email_address(address)
+                n, e = *parse_email_address(address)
                 next unless e
-
                 if e.is_a?(Array) # array of email addresses; no names
-                  e.map {|e2| save_contact(e2.to_s, nil, f, mail) }
+                  e.map {|e2| 
+                    save_contact(e2.to_s, n, f, mail) 
+                  }
                 else
                   n = address.name
                   save_contact(e, n, f, mail)
@@ -108,15 +109,21 @@ class GmailArchiver
     end
   end
 
-  def self.email_address(x)
+  def self.parse_email_address(x)
     if x.respond_to?(:mailbox)
-      "%s@%s" % [x.mailbox, x.host]
+      [x.name, "%s@%s" % [x.mailbox, x.host]]
     elsif x.respond_to?(:address)
-      x.address
+      [x.name, x.address]
     elsif x.is_a?(String)
-      x
+      if x[/<([^>\s]+)>/, 1]   # email address and name
+        email = x[/<([^>\s]+)>/, 1]
+        name = x[/^[^>\s]+/, 0]
+        [name, email]
+      else
+        [nil, x]
+      end
     elsif (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
-      v.split(/, +/)
+      v.split(/, +/).map {|w| parse_email_address(w)}
     end
   end
 
