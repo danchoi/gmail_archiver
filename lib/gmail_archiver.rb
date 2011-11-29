@@ -73,22 +73,12 @@ class GmailArchiver
               }.flatten.each do |address|
                 e = email_address(address)
                 next unless e
-                n = address.name
-                begin
-                  if !(contact = Contact[email: e, name: n])
-                    contact = Contact.create(email: e, name: n)
-                    puts "Created contact  #{e}"
-                  end
-                  p = {contact_id: contact.contact_id,
-                       mail_id: mail.mail_id,
-                       connection: f}
-                  if !DB[:connections].filter(p).first
-                    DB[:connections].insert p
-                  end
-                rescue Sequel::Error
-                  puts "ERROR. #{$!}"
-                  puts "email_address: #{e}"
-                  puts "name: #{n}"
+
+                if e.is_a?(Array) # array of email addresses; no names
+                  e.map {|e2| save_contact(e2.to_s, nil, f, mail) }
+                else
+                  n = address.name
+                  save_contact(e, n, f, mail)
                 end
               end
             end
@@ -124,7 +114,30 @@ class GmailArchiver
     elsif x.is_a?(String)
       x
     elsif (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
-      v.to_s
+      v.split(/, +/)
+    end
+  end
+
+  # e email
+  # n name
+  # f field type
+  def self.save_contact(e, n, f, mail)
+    begin
+      if !(contact = Contact[email: e, name: n])
+        contact = Contact.create(email: e, name: n)
+        puts "Created contact  #{e}"
+      end
+      p = {contact_id: contact.contact_id,
+           mail_id: mail.mail_id,
+           connection: f}
+      if !DB[:connections].filter(p).first
+        DB[:connections].insert p
+      end
+    rescue Sequel::Error
+      puts "ERROR. #{$!}"
+      puts "email_address: #{e}"
+      puts "name: #{n}"
+      raise
     end
   end
 end
