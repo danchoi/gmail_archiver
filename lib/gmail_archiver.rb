@@ -48,6 +48,7 @@ class GmailArchiver
             if mail 
               # Just make sure the mail is labeled
               if !Labeling[mail_id: mail.mail_id, label_id: label.label_id]
+                # TODO add logging here
                 Labeling.create(mail_id: mail.mail_id, label_id: label.label_id)
               end
               next
@@ -58,8 +59,8 @@ class GmailArchiver
             rescue
               [:text, :rfc822].each do |x|
                 params[x] = params[x].encode("US-ASCII", undef: :replace, invalid: :replace)
-                mail = GmailArchiver::Mail.create params
               end
+              mail = GmailArchiver::Mail.create params
             end
 
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id) 
