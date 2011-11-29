@@ -17,6 +17,8 @@ class GmailArchiver
     imap_client.with_open do 
       ['INBOX', '[Gmail]/Important'].each do |mailbox|
 
+        $mailbox = mailbox
+
         label = Label[name: mailbox] || Label.create(name: mailbox) 
 
         imap_client.select_mailbox mailbox
@@ -60,7 +62,7 @@ class GmailArchiver
               end
             end
 
-            DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id)
+            DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id) 
 
             %w(from to cc).each do |f|
               xs = x.mail[f]
@@ -107,13 +109,13 @@ class GmailArchiver
       return
     end
     res = if x.respond_to?(:mailbox)
-      [x.name, "%s@%s" % [x.mailbox, x.host]]
+      [x.name.decoded, "%s@%s" % [x.mailbox, x.host]]
     elsif x.respond_to?(:address)
-      [x.name, x.address]
+      [x.name.decoded, x.address]
     elsif x.is_a?(String)
       if x[/<([^>\s]+)>/, 1]   # email address and name
         email = x[/<([^>\s]+)>/, 1]
-        name = x[/^[^<\s]+/, 0]
+        name = x[/^([^<]+)\s*</, 1]
         [name, email]
       else
         [nil, x]
@@ -132,19 +134,17 @@ class GmailArchiver
   # f field type
   def self.save_contact(e, n, f, mail)
     begin
+      n = n ? n.gsub('"', '').strip : nil
       if (contact = Contact.filter(email: e).first).nil?
         contact = Contact.create(email: e, name: n)
-        # puts "Created contact: #{contact}"
       elsif (n && (contact = Contact.filter(email: e, name: n).first)) || 
         (n.nil? && (contact = Contact.filter(email: e).first)) 
-        # puts "Reusing contact (exact match): #{contact}"
       elsif n && (contact = Contact.filter("email = ? and (name != ? or name is null)", e, n).first)
         old_version = contact.to_s
         if contact.name.nil? || (n.length > contact.name.length)
           contact.update name: n
-          # puts "Updating and reusing contact: #{old_version} => #{contact}"
         else
-          # puts "Reusing contact (partial match, old version preserved): #{old_version} > #{n}"
+          # reuse contact
         end
       else
         raise "Save Contact Error"
@@ -153,7 +153,7 @@ class GmailArchiver
            mail_id: mail.mail_id,
            connection: f}
       if f == 'from'
-        puts "Created mail: #{mail.date.strftime("%m-%d-%Y")} | #{contact} | #{mail.subject && mail.subject[0,50]}"
+        puts "#{$mailbox} => Created mail: #{mail.date.strftime("%m-%d-%Y")} | #{contact} | #{mail.subject && mail.subject[0,50]}"
         mail.update(sender_id: contact.contact_id)
       elsif !DB[:connections].filter(p).first
         DB[:connections].insert p

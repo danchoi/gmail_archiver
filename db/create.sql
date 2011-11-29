@@ -2,8 +2,7 @@
 drop table if exists connections;
 drop table if exists contacts cascade;
 drop table if exists labels cascade;
-drop table if exists labelsings cascade;
-drop table if exists rfc822 cascade;
+drop table if exists labelings cascade;
 drop table if exists mail cascade;
 
 create table contacts (
