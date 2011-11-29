@@ -1,15 +1,17 @@
+require 'sequel'
 require 'gmail_archiver/imap_client'
+
+DB = Sequel.connect 'postgres:///gmail'
+
 require 'gmail_archiver/database'
 require 'yaml'
 
 
 class GmailArchiver
-  def initalize
-  end
 
-  def run
+  def self.run
     # THIS FOR TESTING ONLY
-    config = YAML::load File.read(File.expand_path('~/.vmailrc'))
+    config = YAML::load File.read(File.expand_path('vmailrc'))
     imap = GmailArchiver::ImapClient.new(config)
 
     imap.with_open do |imap|
@@ -34,6 +36,7 @@ class GmailArchiver
             seen: x.flags.include?(:Seen),
             in_reply_to: x.in_reply_to,
             text: text,
+            rfc822: (Iconv.conv("UTF-8//IGNORE", 'UTF-8', x.rfc822)),
             size: x.size }
 
           sender_params = { email: email_address(x.sender) }
@@ -56,10 +59,6 @@ class GmailArchiver
             puts "Created mail  #{mail.date.strftime("%m-%d-%Y")}  #{mail.subject && mail.subject[0,50]}"
 
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id)
-
-            DB[:rfc822].insert mail_id:  mail.mail_id, 
-              content: (Iconv.conv("UTF-8//IGNORE", 'UTF-8', x.rfc822))
-
 
             %w(to cc).each do |f|
               address_structs = x.mail[f]
@@ -94,7 +93,7 @@ class GmailArchiver
     end
   end
 
-  def email_address(address_struct)
+  def self.email_address(address_struct)
     res = if address_struct.respond_to?(:mailbox)
       "%s@%s" % [address_struct.mailbox, address_struct.host]
     else
@@ -110,6 +109,6 @@ end
 
 
 if __FILE__ == $0
-  GmailArchiver.new.run
+  GmailArchiver.run
 end
 

@@ -24,14 +24,10 @@ create table mail (
   text text,
   size int,
   seen boolean,
+  rfc822 text,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_message_id UNIQUE(message_id),
   CONSTRAINT mail_sender_id_fk FOREIGN KEY(sender_id) REFERENCES contacts(contact_id) ON DELETE CASCADE
-);
-
-create table rfc822 (
-  mail_id int references mail(mail_id) on delete cascade,
-  content text
 );
 
 create table labels (
