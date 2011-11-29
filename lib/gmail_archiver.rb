@@ -25,10 +25,9 @@ class GmailArchiver
 
           # TODO get headers first and check if message-id is in db
           # If not, then download the RFC822
-          #
 
           text = x.message
-          text = Iconv.conv("UTF-8//IGNORE", 'UTF-8', text)
+          text = text.encode("UTF-8", undef: :replace, invalid: :replace)
 
           next if x.date.nil?
 
@@ -38,7 +37,7 @@ class GmailArchiver
             seen: x.flags.include?(:Seen),
             in_reply_to: x.in_reply_to,
             text: text,
-            rfc822: (Iconv.conv("UTF-8//IGNORE", 'UTF-8', x.rfc822)),
+            rfc822: x.rfc822.encode("UTF-8", undef: :replace, invalid: :replace),
             size: x.size } 
 
           begin
@@ -52,8 +51,14 @@ class GmailArchiver
               next
             end
 
-            mail = GmailArchiver::Mail.create params
-            puts "Created mail: #{mail.date.strftime("%m-%d-%Y")}  #{mail.subject && mail.subject[0,50]}"
+            begin
+              mail = GmailArchiver::Mail.create params
+            rescue
+              [:text, :rfc822].each do |x|
+                params[x] = params[x].encode("US-ASCII", undef: :replace, invalid: :replace)
+                mail = GmailArchiver::Mail.create params
+              end
+            end
 
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id)
 
@@ -67,7 +72,7 @@ class GmailArchiver
               map {|a| 
                 a.respond_to?(:addrs) ? a.addrs : a
               }.flatten.each do |address|
-                parse_email_address(address, f)
+                parse_email_address(address, f, mail)
               end
             end
 
@@ -108,7 +113,7 @@ class GmailArchiver
     elsif x.is_a?(String)
       if x[/<([^>\s]+)>/, 1]   # email address and name
         email = x[/<([^>\s]+)>/, 1]
-        name = x[/^[^>\s]+/, 0]
+        name = x[/^[^<\s]+/, 0]
         [name, email]
       else
         [nil, x]
@@ -127,26 +132,32 @@ class GmailArchiver
   # f field type
   def self.save_contact(e, n, f, mail)
     begin
-      if (contact = Contact[email: e]).nil?
+      if (contact = Contact.filter(email: e).first).nil?
         contact = Contact.create(email: e, name: n)
-        puts "New contact => #{e.inspect} | #{n}"
-      elsif (contact = Contact[email: e])
-        if n
+        # puts "Created contact: #{contact}"
+      elsif (n && (contact = Contact.filter(email: e, name: n).first)) || 
+        (n.nil? && (contact = Contact.filter(email: e).first)) 
+        # puts "Reusing contact (exact match): #{contact}"
+      elsif n && (contact = Contact.filter("email = ? and (name != ? or name is null)", e, n).first)
+        old_version = contact.to_s
+        if contact.name.nil? || (n.length > contact.name.length)
           contact.update name: n
-          puts "Updated contact => #{e.inspect} | #{n}"
+          # puts "Updating and reusing contact: #{old_version} => #{contact}"
+        else
+          # puts "Reusing contact (partial match, old version preserved): #{old_version} > #{n}"
         end
+      else
+        raise "Save Contact Error"
       end
       p = {contact_id: contact.contact_id,
            mail_id: mail.mail_id,
            connection: f}
-      if !DB[:connections].filter(p).first
-        contact_id = DB[:connections].insert p
-      end
       if f == 'from'
-        puts "Adding sender to mail: #{e} #{n}"
-        mail.update(sender_id: contact_id)
+        puts "Created mail: #{mail.date.strftime("%m-%d-%Y")} | #{contact} | #{mail.subject && mail.subject[0,50]}"
+        mail.update(sender_id: contact.contact_id)
+      elsif !DB[:connections].filter(p).first
+        DB[:connections].insert p
       end
-      contact_id
     rescue Sequel::Error
       puts "ERROR. #{$!}"
       puts "email_address: #{e}"

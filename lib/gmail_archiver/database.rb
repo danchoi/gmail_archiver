@@ -4,6 +4,9 @@ class GmailArchiver
   end
 
   class Contact < Sequel::Model(:contacts)
+    def to_s
+      "#{name} <#{email}>"
+    end
   end
 
   class Role < Sequel::Model(:roles)
