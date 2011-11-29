@@ -68,7 +68,7 @@ class GmailArchiver
               [xs].flatten.
               map {|a| 
                 a.respond_to?(:addrs) ? a.addrs : a
-              }.flatten.each do |address|
+              }.flatten.compact.each do |address|
                 e = email_address(address)
                 n = address.name
                 if !(contact = Contact[email: e, name: n])
@@ -109,7 +109,7 @@ class GmailArchiver
   end
 
   def self.email_address(x)
-    res = if x.respond_to?(:mailbox)
+    if x.respond_to?(:mailbox)
       "%s@%s" % [x.mailbox, x.host]
     elsif x.respond_to?(:address)
       x.address
@@ -118,10 +118,6 @@ class GmailArchiver
     elsif (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
       v.to_s
     end
-    if res.nil?
-      raise "No email address found for: #{x.inspect} | class: #{x.class} | x.value: #{x.value} x.name: #{x.name}"
-    end
-    res
   end
 end
 
