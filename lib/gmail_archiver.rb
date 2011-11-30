@@ -125,7 +125,7 @@ class GmailArchiver
   end
 
   def self.parse_email_address(x, f, mail)
-    if x.respond_to?(:[]) 
+    if x.respond_to?(:[]) && x[f.to_s] && x[f.to_s].respond_to(:formatted)
       x[f.to_s].formatted.map {|w| 
         puts "Formatted field : #{w}"
         parse_email_address(w, f, mail)
@@ -138,16 +138,27 @@ class GmailArchiver
       [x.name.decoded, x.address]
     elsif x.is_a?(String) || x.is_a?(::Mail::Field)
       begin
+        if x.is_a?(::Mail::Field)
+          # puts "Converting Mail::Field: #{x.inspect}"
+        else
+          raise "Processing raw string: #{x}"
+        end
         x = x.to_s 
       rescue # may be unknown encoding
         puts "Unknown encoding for email address"
+        puts $!
         # just fail
         return
+      end
+      if x =~ /,/
+        puts "Address string contains comma. Splitting: #{x.to_s}"
+        x.scan(/\S+@[^\s,]+/).each {|z| parse_email_address(z, f, mail)}
       end
       if x.nil?
         puts "No email address parsed for #{x.inspect}"
         return
       end
+
       if x[/<([^>\s]+)>/, 1]   # email address and name
         email = x[/<([^>\s]+)>/, 1]
         name = x[/^([^<]+)\s*</, 1]
@@ -202,7 +213,8 @@ class GmailArchiver
       puts "email_address: #{e}"
       puts "email_address class: #{e.class}"
       puts "name: #{n}"
-      raise
+      sleep 3
+      # Just skip
     end
   end
 end
