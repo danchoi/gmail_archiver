@@ -125,15 +125,19 @@ class GmailArchiver
   end
 
   def self.parse_email_address(x, f, mail)
-    if (x.respond_to?(:value)) && (v = x.value) && v =~ /@/
-      v.split(/, +/).map {|w| parse_email_address(w, f, mail)}
+    if x.respond_to?(:[]) 
+      x[f.to_s].formatted.map {|w| 
+        puts "Formatted field : #{w}"
+        parse_email_address(w, f, mail)
+      }
       return
     end
     res = if x.respond_to?(:mailbox)
       [x.name.decoded, "%s@%s" % [x.mailbox, x.host]]
     elsif x.respond_to?(:address)
       [x.name.decoded, x.address]
-    elsif x.is_a?(String)
+    elsif x.is_a?(String) || x.is_a?(::Mail::Field)
+      x = x.to_s
       if x[/<([^>\s]+)>/, 1]   # email address and name
         email = x[/<([^>\s]+)>/, 1]
         name = x[/^([^<]+)\s*</, 1]
@@ -141,6 +145,8 @@ class GmailArchiver
       else
         [nil, x]
       end
+    else 
+      puts "Don't know what to do with #{x.inspect} #{x.class}"
     end
     n, e = *res
     unless e
