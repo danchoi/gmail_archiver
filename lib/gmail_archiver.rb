@@ -137,7 +137,17 @@ class GmailArchiver
     elsif x.respond_to?(:address)
       [x.name.decoded, x.address]
     elsif x.is_a?(String) || x.is_a?(::Mail::Field)
-      x = x.to_s
+      begin
+        x = x.to_s 
+      rescue # may be unknown encoding
+        puts "Unknown encoding for email address"
+        # just fail
+        return
+      end
+      if x.nil?
+        puts "No email address parsed for #{x.inspect}"
+        return
+      end
       if x[/<([^>\s]+)>/, 1]   # email address and name
         email = x[/<([^>\s]+)>/, 1]
         name = x[/^([^<]+)\s*</, 1]
