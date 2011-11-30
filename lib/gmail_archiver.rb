@@ -194,7 +194,6 @@ class GmailArchiver
       n = n ? n.gsub('"', '').strip : nil
       if e.length > 50 || e =~ /,/
         puts "Something wrong with email: #{e}"
-        sleep 4
         x = split_emails x, f, mail
         return if x.nil?
       end
@@ -227,7 +226,6 @@ class GmailArchiver
       puts "email_address: #{e}"
       puts "email_address class: #{e.class}"
       puts "name: #{n}"
-      sleep 3
       # Just skip
     end
   end
