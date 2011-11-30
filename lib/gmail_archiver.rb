@@ -193,7 +193,6 @@ class GmailArchiver
     begin
       n = n ? n.gsub('"', '').strip : nil
       if e.length > 50 || e =~ /,/
-        puts "Something wrong with email: #{e}"
         x = split_emails x, f, mail
         return if x.nil?
       end
