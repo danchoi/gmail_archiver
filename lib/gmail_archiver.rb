@@ -125,7 +125,7 @@ class GmailArchiver
   end
 
   def self.parse_email_address(x, f, mail)
-    if x.respond_to?(:[]) && x[f.to_s] && x[f.to_s].respond_to(:formatted)
+    if x.respond_to?(:[]) && x[f.to_s] && x[f.to_s].respond_to?(:formatted)
       x[f.to_s].formatted.map {|w| 
         puts "Formatted field : #{w}"
         parse_email_address(w, f, mail)
@@ -141,7 +141,7 @@ class GmailArchiver
         if x.is_a?(::Mail::Field)
           # puts "Converting Mail::Field: #{x.inspect}"
         else
-          raise "Processing raw string: #{x}"
+          # puts "Processing raw string: #{x}"
         end
         x = x.to_s 
       rescue # may be unknown encoding
@@ -150,12 +150,9 @@ class GmailArchiver
         # just fail
         return
       end
-      if x =~ /,/
-        puts "Address string contains comma. Splitting: #{x.to_s}"
-        x.scan(/\S+@[^\s,]+/).each {|z| parse_email_address(z, f, mail)}
-      end
+      x = split_emails x, f, mail
       if x.nil?
-        puts "No email address parsed for #{x.inspect}"
+        # fail silently
         return
       end
 
@@ -178,12 +175,29 @@ class GmailArchiver
     save_contact(e, n, f, mail)
   end
 
+  def self.split_emails(x, f, mail)
+    if x =~ /,/
+      xs = x.scan(/\S+@[^\s,]+/)
+      # puts "Splitting: #{x.to_s} => #{xs.inspect}"
+      xs.each {|z| parse_email_address(z, f, mail)}
+      nil
+    else
+      x
+    end
+  end
+
   # e email
   # n name
   # f field type
   def self.save_contact(e, n, f, mail)
     begin
       n = n ? n.gsub('"', '').strip : nil
+      if e.length > 50
+        puts "Something wrong with email: #{e}"
+        sleep 4
+        x = split_emails x, f, mail
+        return if x.nil?
+      end
       if (contact = Contact.filter(email: e).first).nil?
         contact = Contact.create(email: e, name: n)
       elsif (n && (contact = Contact.filter(email: e, name: n).first)) || 
