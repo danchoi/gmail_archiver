@@ -200,6 +200,7 @@ class GmailArchiver
     rescue Sequel::Error
       puts "ERROR. #{$!}"
       puts "email_address: #{e}"
+      puts "email_address class: #{e.class}"
       puts "name: #{n}"
       raise
     end
