@@ -149,6 +149,7 @@ class GmailArchiver
       puts "Don't know what to do with #{x.inspect} #{x.class}"
     end
     n, e = *res
+    e = e.to_s
     unless e
       puts "No email found for #{n}"
       return
