@@ -192,7 +192,7 @@ class GmailArchiver
   def self.save_contact(e, n, f, mail)
     begin
       n = n ? n.gsub('"', '').strip : nil
-      if e.length > 50
+      if e.length > 50 || e =~ /,/
         puts "Something wrong with email: #{e}"
         sleep 4
         x = split_emails x, f, mail
