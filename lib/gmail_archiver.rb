@@ -23,7 +23,7 @@ class GmailArchiver
 
         imap_client.select_mailbox mailbox
 
-        get_messages(imap_client.imap, start_idx) do |x|
+        get_messages(imap_client, start_idx) do |x|
 
           # TODO get headers first and check if message-id is in db
           # If not, then download the RFC822
@@ -89,7 +89,8 @@ class GmailArchiver
     end
   end
 
-  def self.get_messages(imap, start_idx=1)
+  def self.get_messages(imap_client, start_idx=1)
+    imap = imap_client.imap
     res = imap.fetch([start_idx,"*"], ["ENVELOPE"])
     max_seqno = res ? res[-1].seqno : 1
     puts "Max seqno: #{max_seqno}"
@@ -98,8 +99,27 @@ class GmailArchiver
       # use bounds instead of specifying all indexes
       bounds = Range.new(id_set[0], id_set[-1], false) # nonexclusive
       puts "Fetching slice: #{bounds}"
-      imap.fetch(bounds, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
-        yield FetchData.new(x)
+      begin
+        imap.fetch(bounds, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
+          yield FetchData.new(x)
+        end
+      rescue 
+        if $!.message =~ /unknown token/ # this is an unfetchable (by Ruby Net::IMAP) message
+          puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages."
+          imap_client.reopen
+          imap = imap_client.imap
+          bounds.each {|i|
+            begin
+              imap.fetch(i, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each { |x| yield FetchData.new(x) }
+            rescue
+              puts "Problem fetching message: #{i}: #{$!}. Skipping."
+              imap_client.reopen
+              imap = imap_client.imap
+            end
+          }
+        else
+          raise
+        end
       end
     end
   end

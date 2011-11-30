@@ -29,7 +29,14 @@ class GmailArchiver
       list_mailboxes
       yield 
     ensure
-      close
+      # close
+    end
+
+    def reopen
+      puts "Reopening IMAP connection"
+      @imap = Net::IMAP.new(@imap_server, @imap_port, true, nil, false)
+      @imap.login(@username, @password)
+      select_mailbox @mailbox
     end
 
     def close
