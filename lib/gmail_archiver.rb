@@ -126,7 +126,7 @@ class GmailArchiver
               imap.uid_fetch([uid], ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
                 yield FetchData.new(x)
               end
-            rescue Net::IMAP::ResponseParseError
+            rescue Exception 
               delete_uids.delete uid # leave in mailbox
               $stderr.puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages & reopening connection."
               imap_client.reopen
@@ -136,10 +136,15 @@ class GmailArchiver
           log res
         end
         if $delete
-          puts "Deleting UIDs: #{delete_uids.inspect}"
+          puts "Deleting UIDs: #{delete_uids.join(',')}"
           imap.uid_copy(delete_uids, '[Gmail]/Trash') # TODO change this for europe
           imap.uid_store(delete_uids, "+FLAGS", [:Deleted])
         end
+      rescue Exception
+        $stderr.puts $!
+        $stderr.puts $!.backtrace
+        imap_client.reopen
+        imap = imap_client.imap
       end
     end
   end
