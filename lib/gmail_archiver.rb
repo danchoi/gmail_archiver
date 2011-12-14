@@ -29,10 +29,8 @@ class GmailArchiver
           text = x.message.encode("UTF-8", undef: :replace, invalid: :replace)
 
           next if x.date.nil?
-
-          flags = x.attr["FLAGS"]
-          seen = flags.include?(:Seen)
-          flagged = flags.include?(:Flagged)
+          seen = x.flags.include?(:Seen)
+          flagged = x.flags.include?(:Flagged)
           
           params = {
             message_id: x.message_id,
@@ -97,7 +95,7 @@ class GmailArchiver
     range.to_a.each_slice(30) do |id_set|
       # use bounds instead of specifying all indexes
       bounds = Range.new(id_set[0], id_set[-1], false) # nonexclusive
-      puts "Fetching slice: #{bounds}"
+      puts "Fetching slice: #{bounds} / #{max_seqno}"
       begin
         delete_uids = []
         uids = imap.fetch(bounds, ["ENVELOPE", "UID", "FLAGS"]).select {|x|
@@ -129,6 +127,7 @@ class GmailArchiver
             rescue Exception 
               delete_uids.delete uid # leave in mailbox
               $stderr.puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages & reopening connection."
+              sleep 60
               imap_client.reopen
               imap = imap_client.imap
             end
@@ -142,7 +141,9 @@ class GmailArchiver
         end
       rescue Exception
         $stderr.puts $!
+        $stderr.puts $!.message
         $stderr.puts $!.backtrace
+        sleep 60
         imap_client.reopen
         imap = imap_client.imap
       end
