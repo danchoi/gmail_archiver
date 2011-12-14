@@ -105,7 +105,7 @@ class GmailArchiver
           mail = GmailArchiver::Mail[message_id: message_id]
           if mail
             if !Labeling[mail_id: mail.mail_id, label_id: label.label_id]
-              log Labeling.create(mail_id: mail.mail_id, label_id: label.label_id)
+              Labeling.create(mail_id: mail.mail_id, label_id: label.label_id)
             end
             puts "Already saved #{message_id}"
             false
@@ -128,7 +128,6 @@ class GmailArchiver
               imap = imap_client.imap
             end
           end
-          log res
         end
         if $delete
           puts "Deleting UIDs: #{delete_uids.join(',')}"
@@ -221,7 +220,7 @@ class GmailArchiver
       if (contact = Contact.filter(email: e).first).nil?
         contact = Contact.create(email: e, name: n)
       elsif (contact = Contact.filter("email = ?", e).first)
-        contact.update(name: n) if n
+        contact.update(name: n) if n && n != contact.name
       else
         raise "Save Contact Error"
       end
