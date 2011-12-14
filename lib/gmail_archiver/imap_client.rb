@@ -4,7 +4,6 @@ require 'yaml'
 require 'mail'
 require 'net/imap'
 require 'time'
-require 'gmail_archiver/fetch_data'
 
 class GmailArchiver
   class ImapClient

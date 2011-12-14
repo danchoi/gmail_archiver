@@ -1,5 +1,6 @@
 require 'sequel'
 require 'gmail_archiver/imap_client'
+require 'gmail_archiver/fetch_data'
 
 DB = Sequel.connect 'postgres:///gmail'
 
@@ -16,13 +17,9 @@ class GmailArchiver
 
     imap_client.with_open do 
       ['INBOX', '[Gmail]/Important'].each do |mailbox|
-
         $mailbox = mailbox
-
         label = Label[name: mailbox] || Label.create(name: mailbox) 
-
         imap_client.select_mailbox mailbox
-
         get_messages(imap_client, start_idx) do |x|
 
           # TODO get headers first and check if message-id is in db
@@ -44,7 +41,6 @@ class GmailArchiver
           } 
 
           begin
-
             mail = GmailArchiver::Mail[message_id: x.message_id]
             if mail 
               # Just make sure the mail is labeled
@@ -54,7 +50,6 @@ class GmailArchiver
               end
               next
             end
-
             begin
               mail = GmailArchiver::Mail.create params
             rescue
@@ -63,9 +58,7 @@ class GmailArchiver
               end
               mail = GmailArchiver::Mail.create params
             end
-
             DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id) 
-
             %w(from to cc).each do |f|
               xs = x.mail[f]
               next if xs.nil?
@@ -79,8 +72,8 @@ class GmailArchiver
                 parse_email_address(address, f, mail)
               end
             end
-
           rescue
+            puts $!
             puts params.inspect
             raise
           end
@@ -101,9 +94,22 @@ class GmailArchiver
       bounds = Range.new(id_set[0], id_set[-1], false) # nonexclusive
       puts "Fetching slice: #{bounds}"
       begin
-        imap.fetch(bounds, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
+        uids = imap.fetch(bounds, ["ENVELOPE", "UID"]).select {|x|
+          message_id = x.attr["ENVELOPE"].message_id
+          mail = GmailArchiver::Mail[message_id: message_id]
+          if mail
+            puts "Already saved #{message_id}"
+            false
+          else
+            true
+          end
+        }.map {|x| x.attr["UID"]}
+        
+        puts "Fetching UIDs: #{uids.inspect}"
+        imap.uid_fetch(uids, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
           yield FetchData.new(x)
         end
+
       rescue 
         if $!.message =~ /unknown token/ # this is an unfetchable (by Ruby Net::IMAP) message
           puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages."
