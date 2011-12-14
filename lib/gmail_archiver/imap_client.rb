@@ -7,7 +7,7 @@ require 'time'
 
 class GmailArchiver
   class ImapClient
-    attr_accessor :max_seqno, :imap
+    attr_accessor :max_seqno, :imap, :mailbox
     def initialize(config)
       @username, @password = config['username'], config['password']
       @imap_server = config['server'] || 'imap.gmail.com'

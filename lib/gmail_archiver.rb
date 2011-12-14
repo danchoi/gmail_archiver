@@ -20,7 +20,8 @@ class GmailArchiver
         $mailbox = mailbox
         label = Label[name: mailbox] || Label.create(name: mailbox) 
         imap_client.select_mailbox mailbox
-        get_messages(imap_client, start_idx) do |x|
+
+        get_messages(imap_client, start_idx, label) do |x|
 
           # TODO get headers first and check if message-id is in db
           # If not, then download the RFC822
@@ -29,27 +30,24 @@ class GmailArchiver
 
           next if x.date.nil?
 
+          flags = x.attr["FLAGS"]
+          seen = flags.include?(:Seen)
+          flagged = flags.include?(:Flagged)
+          
           params = {
             message_id: x.message_id,
             date: x.date,
             subject: x.subject, 
-            seen: x.flags.include?(:Seen),
             in_reply_to: x.in_reply_to,
             text: text,
+            seen: seen,
+            flagged: flagged,
             rfc822: x.rfc822.encode("UTF-8", undef: :replace, invalid: :replace),
             size: x.size 
           } 
 
           begin
             mail = GmailArchiver::Mail[message_id: x.message_id]
-            if mail 
-              # Just make sure the mail is labeled
-              if !Labeling[mail_id: mail.mail_id, label_id: label.label_id]
-                # TODO add logging here
-                Labeling.create(mail_id: mail.mail_id, label_id: label.label_id)
-              end
-              next
-            end
             begin
               mail = GmailArchiver::Mail.create params
             rescue
@@ -83,7 +81,14 @@ class GmailArchiver
     end
   end
 
-  def self.get_messages(imap_client, start_idx=1)
+  def self.log(string)
+    if string.is_a?(::Net::IMAP::TaggedResponse)
+      string = string.raw_data
+    end
+    puts string
+  end
+
+  def self.get_messages(imap_client, start_idx=1, label)
     imap = imap_client.imap
     res = imap.fetch([start_idx,"*"], ["ENVELOPE"])
     max_seqno = res ? res[-1].seqno : 1
@@ -94,19 +99,36 @@ class GmailArchiver
       bounds = Range.new(id_set[0], id_set[-1], false) # nonexclusive
       puts "Fetching slice: #{bounds}"
       begin
-        uids = imap.fetch(bounds, ["ENVELOPE", "UID"]).select {|x|
+        delete_uids = []
+        uids = imap.fetch(bounds, ["ENVELOPE", "UID", "FLAGS"]).select {|x|
           message_id = x.attr["ENVELOPE"].message_id
           mail = GmailArchiver::Mail[message_id: message_id]
+          mailbox = imap_client.mailbox
+          if mail 
+            if !Labeling[mail_id: mail.mail_id, label_id: label.label_id]
+              log Labeling.create(mail_id: mail.mail_id, label_id: label.label_id)
+            end
+          end
           if mail
             puts "Already saved #{message_id}"
+            if $delete
+              delete_uids << x.attr["UID"]
+            end
             false
           else
             true
           end
         }.map {|x| x.attr["UID"]}
-        puts "Fetching UIDs: #{uids.inspect}"
-        imap.uid_fetch(uids, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
-          yield FetchData.new(x)
+        if !uids.empty?
+          puts "Fetching UIDs: #{uids.inspect}"
+          imap.uid_fetch(uids, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
+            yield FetchData.new(x)
+          end
+          log res
+        end
+        if $delete
+          puts "Deleting UIDs: #{delete_uids.inspect}"
+          imap.uid_store(delete_uids, "+FLAGS", :Deleted)
         end
       rescue 
         if $!.message =~ /unknown token/ # this is an unfetchable (by Ruby Net::IMAP) message
@@ -237,6 +259,9 @@ end
 
 if __FILE__ == $0
   start_idx = (ARGV[0] || 1).to_i
+
+  $delete = true
+
   GmailArchiver.run start_idx
 end
 

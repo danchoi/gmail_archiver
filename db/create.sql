@@ -23,6 +23,7 @@ create table mail (
   text text,
   size int,
   seen boolean,
+  flagged boolean,
   rfc822 text,
   CONSTRAINT mail_pk PRIMARY KEY(mail_id),
   CONSTRAINT mail_message_id UNIQUE(message_id),
