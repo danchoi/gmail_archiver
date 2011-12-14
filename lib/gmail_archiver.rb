@@ -28,19 +28,20 @@ class GmailArchiver
           # TODO get headers first and check if message-id is in db
           # If not, then download the RFC822
 
-          text = x.message
-          text = text.encode("UTF-8", undef: :replace, invalid: :replace)
+          text = x.message.encode("UTF-8", undef: :replace, invalid: :replace)
 
           next if x.date.nil?
 
-          params = {message_id: x.message_id,
+          params = {
+            message_id: x.message_id,
             date: x.date,
             subject: x.subject, 
             seen: x.flags.include?(:Seen),
             in_reply_to: x.in_reply_to,
             text: text,
             rfc822: x.rfc822.encode("UTF-8", undef: :replace, invalid: :replace),
-            size: x.size } 
+            size: x.size 
+          } 
 
           begin
 
