@@ -10,64 +10,69 @@ require 'yaml'
 
 class GmailArchiver
 
-  def self.run(start_idx=1)
-    # THIS FOR TESTING ONLY
+  def self.new_imap_client
     config = YAML::load File.read(File.expand_path('vmailrc'))
     imap_client = GmailArchiver::ImapClient.new(config)
+  end
 
+  def self.list_mailboxes
+    imap_client = new_imap_client
     imap_client.with_open do 
-      ['INBOX', '[Gmail]/Important'].each do |mailbox|
-        $mailbox = mailbox
-        label = Label[name: mailbox] || Label.create(name: mailbox) 
-        imap_client.select_mailbox mailbox
+      imap_client.list_mailboxes
+    end
+  end
 
-        get_messages(imap_client, start_idx, label) do |x|
-          next if GmailArchiver::Mail[message_id: x.message_id]
-          text = x.message.encode("UTF-8", undef: :replace, invalid: :replace)
-          next if x.date.nil?
-          seen = x.flags.include?(:Seen)
-          flagged = x.flags.include?(:Flagged)
-          params = {
-            message_id: x.message_id,
-            date: x.date,
-            subject: x.subject, 
-            in_reply_to: x.in_reply_to,
-            text: text,
-            seen: seen,
-            flagged: flagged,
-            rfc822: x.rfc822.encode("UTF-8", undef: :replace, invalid: :replace),
-            size: x.size 
-          } 
+  def self.run(mailbox, start_idx=1)
+    imap_client = new_imap_client
+    imap_client.with_open do 
+      label = Label[name: mailbox] || Label.create(name: mailbox) 
+      imap_client.select_mailbox mailbox
 
+      get_messages(imap_client, start_idx, label) do |x|
+        next if GmailArchiver::Mail[message_id: x.message_id]
+        text = x.message.encode("UTF-8", undef: :replace, invalid: :replace)
+        next if x.date.nil?
+        seen = x.flags.include?(:Seen)
+        flagged = x.flags.include?(:Flagged)
+        params = {
+          message_id: x.message_id,
+          date: x.date,
+          subject: x.subject, 
+          in_reply_to: x.in_reply_to,
+          text: text,
+          seen: seen,
+          flagged: flagged,
+          rfc822: x.rfc822.encode("UTF-8", undef: :replace, invalid: :replace),
+          size: x.size 
+        } 
+
+        begin
           begin
-            begin
-              mail = GmailArchiver::Mail.create params
-            rescue
-              [:text, :rfc822].each do |x|
-                params[x] = params[x].encode("US-ASCII", undef: :replace, invalid: :replace)
-              end
-              mail = GmailArchiver::Mail.create params
-            end
-            DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id) 
-            %w(from to cc).each do |f|
-              xs = x.mail[f]
-              next if xs.nil?
-              if xs.respond_to?(:addrs)
-                xs = xs.addrs
-              end
-              [xs].flatten.
-              map {|a| 
-                a.respond_to?(:addrs) ? a.addrs : a
-              }.flatten.each do |address|
-                parse_email_address(address, f, mail)
-              end
-            end
+            mail = GmailArchiver::Mail.create params
           rescue
-            puts $!
-            puts params.inspect
-            raise
+            [:text, :rfc822].each do |x|
+              params[x] = params[x].encode("US-ASCII", undef: :replace, invalid: :replace)
+            end
+            mail = GmailArchiver::Mail.create params
           end
-
+          DB[:labelings].insert(mail_id: mail.mail_id, label_id: label.label_id) 
+          %w(from to cc).each do |f|
+            xs = x.mail[f]
+            next if xs.nil?
+            if xs.respond_to?(:addrs)
+              xs = xs.addrs
+            end
+            [xs].flatten.
+            map {|a| 
+              a.respond_to?(:addrs) ? a.addrs : a
+            }.flatten.each do |address|
+              parse_email_address(address, f, mail)
+            end
+          end
+        rescue
+          puts $!
+          puts params.inspect
+          raise
         end
       end
     end
@@ -248,10 +253,13 @@ class GmailArchiver
 end
 
 if __FILE__ == $0
+  if ARGV.empty?
+    GmailArchiver.list_mailboxes
+    exit
+  end
+  mailbox = ARGV.shift
   start_idx = (ARGV[0] || 1).to_i
-
   $delete = true
-
-  GmailArchiver.run start_idx
+  GmailArchiver.run mailbox, start_idx
 end
 
