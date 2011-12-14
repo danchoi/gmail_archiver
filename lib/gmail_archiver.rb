@@ -104,12 +104,10 @@ class GmailArchiver
             true
           end
         }.map {|x| x.attr["UID"]}
-        
         puts "Fetching UIDs: #{uids.inspect}"
         imap.uid_fetch(uids, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
           yield FetchData.new(x)
         end
-
       rescue 
         if $!.message =~ /unknown token/ # this is an unfetchable (by Ruby Net::IMAP) message
           puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages."
