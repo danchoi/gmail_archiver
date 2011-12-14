@@ -220,15 +220,8 @@ class GmailArchiver
       end
       if (contact = Contact.filter(email: e).first).nil?
         contact = Contact.create(email: e, name: n)
-      elsif (n && (contact = Contact.filter(email: e, name: n).first)) || 
-        (n.nil? && (contact = Contact.filter(email: e).first)) 
-      elsif n && (contact = Contact.filter("email = ? and (name != ? or name is null)", e, n).first)
-        old_version = contact.to_s
-        if contact.name.nil? || (n.length > contact.name.length)
-          contact.update name: n
-        else
-          # reuse contact
-        end
+      elsif (contact = Contact.filter("email = ?", e).first)
+        contact.update(name: n) if n
       else
         raise "Save Contact Error"
       end
