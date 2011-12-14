@@ -102,6 +102,9 @@ class GmailArchiver
         delete_uids = []
         uids = imap.fetch(bounds, ["ENVELOPE", "UID", "FLAGS"]).select {|x|
           message_id = x.attr["ENVELOPE"].message_id
+          if $delete
+            delete_uids << x.attr["UID"]
+          end
           mail = GmailArchiver::Mail[message_id: message_id]
           mailbox = imap_client.mailbox
           if mail 
@@ -111,9 +114,6 @@ class GmailArchiver
           end
           if mail
             puts "Already saved #{message_id}"
-            if $delete
-              delete_uids << x.attr["UID"]
-            end
             false
           else
             true
@@ -121,31 +121,24 @@ class GmailArchiver
         }.map {|x| x.attr["UID"]}
         if !uids.empty?
           puts "Fetching UIDs: #{uids.inspect}"
-          imap.uid_fetch(uids, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
-            yield FetchData.new(x)
+          uids.each do |uid|
+            begin
+              imap.uid_fetch([uid], ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each do |x|
+                yield FetchData.new(x)
+              end
+            rescue Net::IMAP::ResponseParseError
+              delete_uids.delete uid # leave in mailbox
+              $stderr.puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages & reopening connection."
+              imap_client.reopen
+              imap = imap_client.imap
+            end
           end
           log res
         end
         if $delete
           puts "Deleting UIDs: #{delete_uids.inspect}"
-          imap.uid_store(delete_uids, "+FLAGS", :Deleted)
-        end
-      rescue 
-        if $!.message =~ /unknown token/ # this is an unfetchable (by Ruby Net::IMAP) message
-          puts "Encountered an error: #{$!}.\n#{$!.backtrace.join("\n")}\nRetrying individual messages."
-          imap_client.reopen
-          imap = imap_client.imap
-          bounds.each {|i|
-            begin
-              imap.fetch(i, ["FLAGS", 'ENVELOPE', 'RFC822', 'RFC822.SIZE']).each { |x| yield FetchData.new(x) }
-            rescue
-              puts "Problem fetching message: #{i}: #{$!}. Skipping."
-              imap_client.reopen
-              imap = imap_client.imap
-            end
-          }
-        else
-          raise
+          imap.uid_copy(delete_uids, '[Gmail]/Trash') # TODO change this for europe
+          imap.uid_store(delete_uids, "+FLAGS", [:Deleted])
         end
       end
     end
