@@ -22,16 +22,11 @@ class GmailArchiver
         imap_client.select_mailbox mailbox
 
         get_messages(imap_client, start_idx, label) do |x|
-
-          # TODO get headers first and check if message-id is in db
-          # If not, then download the RFC822
-
+          next if GmailArchiver::Mail[message_id: x.message_id]
           text = x.message.encode("UTF-8", undef: :replace, invalid: :replace)
-
           next if x.date.nil?
           seen = x.flags.include?(:Seen)
           flagged = x.flags.include?(:Flagged)
-          
           params = {
             message_id: x.message_id,
             date: x.date,
@@ -45,7 +40,6 @@ class GmailArchiver
           } 
 
           begin
-            mail = GmailArchiver::Mail[message_id: x.message_id]
             begin
               mail = GmailArchiver::Mail.create params
             rescue
@@ -104,13 +98,10 @@ class GmailArchiver
             delete_uids << x.attr["UID"]
           end
           mail = GmailArchiver::Mail[message_id: message_id]
-          mailbox = imap_client.mailbox
-          if mail 
+          if mail
             if !Labeling[mail_id: mail.mail_id, label_id: label.label_id]
               log Labeling.create(mail_id: mail.mail_id, label_id: label.label_id)
             end
-          end
-          if mail
             puts "Already saved #{message_id}"
             false
           else
